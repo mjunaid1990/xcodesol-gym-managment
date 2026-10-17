@@ -1,0 +1,91 @@
+@import 'tailwindcss';
+
+/*
+ * Ironhouse design system
+ * - Dark, high-contrast UI built for a gym front desk under fluorescent light.
+ * - Every colour pair below is checked against WCAG AA (4.5:1 for body text).
+ * - Spacing scale: 4px base. Radius scale: 8 / 12 / 16. Touch targets: 44px minimum.
+ */
+@theme {
+  --color-ink-950: #07090c;
+  --color-ink-900: #0b0f14;
+  --color-ink-850: #11161d;
+  --color-ink-800: #161d26;
+  --color-ink-700: #1f2733;
+  --color-ink-600: #2b3543;
+  --color-ink-400: #6b7787;
+  --color-ink-300: #98a4b3;
+  --color-ink-200: #c3ccd8;
+  --color-ink-100: #e8edf3;
+
+  --color-lime-500: #b8f23c;
+  --color-lime-400: #cbf85f;
+  --color-lime-600: #94cc1f;
+
+  --color-sky-400: #4cc9f0;
+  --color-amber-400: #f5b642;
+  --color-rose-400: #f0667a;
+  --color-violet-400: #a78bfa;
+  --color-emerald-400: #34d399;
+
+  --font-sans: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  --radius-card: 16px;
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  background-color: var(--color-ink-950);
+  color: var(--color-ink-100);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Focus ring is always visible for keyboard users, never for mouse users. */
+:focus-visible {
+  outline: 2px solid var(--color-lime-500);
+  outline-offset: 2px;
+}
+
+::selection {
+  background: var(--color-lime-500);
+  color: #07090c;
+}
+
+/* Slim scrollbars keep dense tables readable. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-ink-600) transparent;
+}
+*::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+*::-webkit-scrollbar-thumb {
+  background: var(--color-ink-600);
+  border-radius: 999px;
+}
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+@utility card {
+  background: linear-gradient(180deg, color-mix(in srgb, var(--color-ink-800) 92%, white 8%), var(--color-ink-850));
+  border: 1px solid var(--color-ink-700);
+  border-radius: var(--radius-card);
+}
+
+@utility stat-value {
+  font-variant-numeric: tabular-nums;
+  font-weight: 650;
+  letter-spacing: -0.02em;
+}
+
+@media print {
+  .no-print {
+    display: none !important;
+  }
+}
