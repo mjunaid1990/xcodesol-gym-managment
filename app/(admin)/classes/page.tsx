@@ -91,7 +91,7 @@ export default async function ClassesPage({
                         {formatTime(session.startsAt)} – {formatTime(session.endsAt)}
                       </td>
                       <td className="px-4 py-3">
-                        <Link href={`/classes/${session.id}`} className="font-medium hover:text-lime-500">
+                        <Link href={`/classes/${session.id}`} className="font-medium hover:text-white transition-colors">
                           {session.title}
                         </Link>
                         <p className="text-xs text-ink-400">{session.branchName}</p>
@@ -119,7 +119,7 @@ export default async function ClassesPage({
                             confirmMessage="Cancel this class and release everyone booked?"
                           />
                         ) : (
-                          <Link href={`/classes/${session.id}`} className="text-xs text-ink-300 hover:text-lime-500">
+                          <Link href={`/classes/${session.id}`} className="text-xs text-ink-300 hover:text-white transition-colors">
                             Roster →
                           </Link>
                         )}

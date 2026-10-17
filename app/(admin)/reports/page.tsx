@@ -114,7 +114,7 @@ export default async function ReportsPage({
               {utilisation.map((row) => (
                 <tr key={row.sessionId}>
                   <td className="px-4 py-3">
-                    <Link href={`/classes/${row.sessionId}`} className="font-medium hover:text-lime-500">
+                    <Link href={`/classes/${row.sessionId}`} className="font-medium hover:text-white transition-colors">
                       {row.title}
                     </Link>
                     <p className="text-xs text-ink-400">{row.trainerName ?? 'Unassigned'}</p>
@@ -202,7 +202,7 @@ export default async function ReportsPage({
               <tr key={row.id}>
                 <td className="px-4 py-3 font-mono text-xs">{row.number}</td>
                 <td className="px-4 py-3">
-                  <Link href={`/members/${row.memberId}`} className="hover:text-lime-500">
+                  <Link href={`/members/${row.memberId}`} className="hover:text-white transition-colors">
                     {row.memberName}
                   </Link>
                   <p className="text-xs text-ink-400">{row.memberEmail}</p>

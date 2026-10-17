@@ -94,7 +94,7 @@ export default async function PaymentsPage({
               <tr key={payment.id} className="hover:bg-ink-800/40">
                 <td className="px-4 py-3 whitespace-nowrap text-xs">{formatDateTime(payment.paidAt ?? payment.createdAt)}</td>
                 <td className="px-4 py-3">
-                  <Link href={`/members/${payment.memberId}`} className="font-medium hover:text-lime-500">
+                  <Link href={`/members/${payment.memberId}`} className="font-medium hover:text-white transition-colors">
                     {payment.memberName}
                   </Link>
                   <p className="text-xs text-ink-400">{payment.memberEmail}</p>
@@ -154,7 +154,7 @@ export default async function PaymentsPage({
                     ) : null}
                   </td>
                   <td className="px-4 py-3">
-                    <Link href={`/members/${invoice.memberId}`} className="hover:text-lime-500">
+                    <Link href={`/members/${invoice.memberId}`} className="hover:text-white transition-colors">
                       {invoice.memberName}
                     </Link>
                     <p className="text-xs text-ink-400">{invoice.description ?? ''}</p>
@@ -197,7 +197,7 @@ export default async function PaymentsPage({
             {renewals.map((row) => (
               <tr key={row.id}>
                 <td className="px-4 py-3">
-                  <Link href={`/members/${row.memberId}`} className="hover:text-lime-500">
+                  <Link href={`/members/${row.memberId}`} className="hover:text-white transition-colors">
                     {row.memberName}
                   </Link>
                 </td>

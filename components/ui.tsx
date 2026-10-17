@@ -109,10 +109,10 @@ export function Button({
   title,
 }: ButtonProps) {
   const variants = {
-    primary: 'bg-lime-500 text-ink-950 hover:bg-lime-400 font-semibold',
-    secondary: 'bg-ink-700 text-ink-100 hover:bg-ink-600 border border-ink-600',
-    ghost: 'bg-transparent text-ink-200 hover:bg-ink-800',
-    danger: 'bg-rose-400/15 text-rose-400 hover:bg-rose-400/25 border border-rose-400/40',
+    primary: 'bg-white text-ink-950 hover:bg-zinc-200 font-semibold shadow-sm transition-all active:scale-[0.99]',
+    secondary: 'bg-ink-800 text-ink-100 hover:bg-ink-700 hover:text-white border border-ink-700 transition-all active:scale-[0.99]',
+    ghost: 'bg-transparent text-ink-300 hover:bg-ink-800 hover:text-white transition-all',
+    danger: 'bg-rose-500/10 text-rose-400 hover:bg-rose-500/20 border border-rose-500/30 transition-all',
   }
   const sizes = { sm: 'h-9 px-3 text-xs', md: 'h-11 px-4 text-sm' }
 
@@ -123,7 +123,7 @@ export function Button({
       disabled={disabled}
       onClick={onClick}
       className={cn(
-        'inline-flex items-center justify-center gap-2 rounded-xl transition-colors disabled:cursor-not-allowed disabled:opacity-50',
+        'inline-flex items-center justify-center gap-2 rounded-xl transition-colors disabled:cursor-not-allowed disabled:opacity-50 cursor-pointer',
         variants[variant],
         sizes[size],
         className,
@@ -142,15 +142,15 @@ export function Badge({
   tone?: 'neutral' | 'positive' | 'warning' | 'danger' | 'info' | 'accent'
 }) {
   const tones = {
-    neutral: 'bg-ink-700 text-ink-200 border-ink-600',
-    positive: 'bg-emerald-400/12 text-emerald-400 border-emerald-400/30',
-    warning: 'bg-amber-400/12 text-amber-400 border-amber-400/30',
-    danger: 'bg-rose-400/12 text-rose-400 border-rose-400/30',
-    info: 'bg-sky-400/12 text-sky-400 border-sky-400/30',
-    accent: 'bg-lime-500/12 text-lime-500 border-lime-500/30',
+    neutral: 'bg-ink-800 text-ink-200 border-ink-700',
+    positive: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/25',
+    warning: 'bg-amber-500/10 text-amber-400 border-amber-500/25',
+    danger: 'bg-rose-500/10 text-rose-400 border-rose-500/25',
+    info: 'bg-sky-500/10 text-sky-400 border-sky-500/25',
+    accent: 'bg-white/10 text-white border-white/20',
   }
   return (
-    <span className={cn('inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium', tones[tone])}>
+    <span className={cn('inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium tracking-wide', tones[tone])}>
       {children}
     </span>
   )
@@ -231,7 +231,7 @@ export function Field({
 }
 
 export const inputClass =
-  'h-11 w-full rounded-xl border border-ink-600 bg-ink-900 px-3 text-sm text-ink-100 placeholder:text-ink-400 focus:border-lime-500 focus:outline-none'
+  'h-11 w-full rounded-xl border border-ink-700 bg-ink-900 px-3.5 text-sm text-ink-100 placeholder:text-ink-400 focus:border-zinc-400 focus:outline-none transition-colors'
 
 export const selectClass = inputClass
 
@@ -257,7 +257,7 @@ export function Sparkline({
     .map((value, index) => `${index === 0 ? 'M' : 'L'} ${(index * step).toFixed(2)} ${(height - (value / max) * (height - 6) - 3).toFixed(2)}`)
     .join(' ')
 
-  const stroke = { lime: 'var(--color-lime-500)', sky: 'var(--color-sky-400)', rose: 'var(--color-rose-400)', amber: 'var(--color-amber-400)' }[tone]
+  const stroke = { lime: '#ffffff', sky: 'var(--color-sky-400)', rose: 'var(--color-rose-400)', amber: 'var(--color-amber-400)' }[tone]
 
   return (
     <figure className="w-full">
@@ -278,7 +278,7 @@ export function BarChart({ data, unit = '' }: { data: { label: string; value: nu
           <span className="text-ink-300">{point.label}</span>
           <span className="h-2 overflow-hidden rounded-full bg-ink-800">
             <span
-              className="block h-full rounded-full bg-lime-500/70"
+              className="block h-full rounded-full bg-white/70"
               style={{ width: `${Math.round((point.value / max) * 100)}%` }}
             />
           </span>

@@ -50,10 +50,10 @@ export default async function DashboardPage() {
         subtitle={`${gymName} · last 30 days${branchId ? ' · your branch' : ' · all branches'}`}
         actions={
           <>
-            <Link href="/checkin" className="rounded-xl bg-lime-500 px-4 py-3 text-sm font-semibold text-ink-950">
+            <Link href="/checkin" className="rounded-xl bg-white px-4 py-3 text-sm font-semibold text-ink-950 hover:bg-zinc-200 transition-colors shadow-sm">
               Open check-in
             </Link>
-            <Link href="/reports" className="rounded-xl border border-ink-600 bg-ink-700 px-4 py-3 text-sm">
+            <Link href="/reports" className="rounded-xl border border-ink-700 bg-ink-800 hover:bg-ink-700 hover:text-white px-4 py-3 text-sm text-ink-200 transition-colors">
               Reports
             </Link>
           </>
@@ -143,7 +143,7 @@ export default async function DashboardPage() {
               {nextSessions.map((session) => (
                 <tr key={session.id} className="hover:bg-ink-800/40">
                   <td className="px-4 py-3">
-                    <Link href={`/classes/${session.id}`} className="font-medium hover:text-lime-500">
+                    <Link href={`/classes/${session.id}`} className="font-medium hover:text-white transition-colors">
                       {session.title}
                     </Link>
                     <p className="text-xs text-ink-400">{session.roomName ?? 'Floor'}</p>
@@ -180,7 +180,7 @@ export default async function DashboardPage() {
               {expiring.rows.map((row) => (
                 <tr key={row.id} className="hover:bg-ink-800/40">
                   <td className="px-4 py-3">
-                    <Link href={`/members/${row.memberId}`} className="font-medium hover:text-lime-500">
+                    <Link href={`/members/${row.memberId}`} className="font-medium hover:text-white transition-colors">
                       {row.memberName}
                     </Link>
                     <p className="text-xs text-ink-400">{row.memberEmail}</p>
@@ -201,7 +201,7 @@ export default async function DashboardPage() {
             {payload.utilisation.map((row) => (
               <tr key={row.sessionId} className="hover:bg-ink-800/40">
                 <td className="px-4 py-3">
-                  <Link href={`/classes/${row.sessionId}`} className="font-medium hover:text-lime-500">
+                  <Link href={`/classes/${row.sessionId}`} className="font-medium hover:text-white transition-colors">
                     {row.title}
                   </Link>
                   <p className="text-xs text-ink-400">{row.trainerName ?? 'Unassigned'}</p>
@@ -248,7 +248,7 @@ export default async function DashboardPage() {
                     <Badge tone={row.ageDays > 14 ? 'danger' : 'warning'}>{row.ageDays}d</Badge>
                   </td>
                   <td className="px-4 py-3">
-                    <Link href={`/members/${row.memberId}`} className="hover:text-lime-500">
+                    <Link href={`/members/${row.memberId}`} className="hover:text-white transition-colors">
                       {row.memberName}
                     </Link>
                   </td>

@@ -33,7 +33,7 @@ export default async function CheckInPage({ searchParams }: { searchParams: Prom
             <dl className="grid grid-cols-2 gap-4 text-sm">
               <div>
                 <dt className="text-xs text-ink-400">Check-ins today</dt>
-                <dd className="stat-value mt-1 text-2xl text-lime-500">{floor.visitsToday}</dd>
+                <dd className="stat-value mt-1 text-2xl text-white font-semibold">{floor.visitsToday}</dd>
               </div>
               <div>
                 <dt className="text-xs text-ink-400">Unique members</dt>

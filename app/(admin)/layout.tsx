@@ -27,9 +27,9 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     <div className="flex min-h-screen flex-col lg:flex-row">
       <aside className="border-b border-ink-800 bg-ink-900 lg:w-64 lg:shrink-0 lg:border-b-0 lg:border-r">
         <div className="flex items-center justify-between gap-4 px-5 py-4 lg:block">
-          <Link href="/dashboard" className="flex items-center gap-2">
-            <span className="grid h-8 w-8 place-items-center rounded-lg bg-lime-500 text-sm font-bold text-ink-950">IH</span>
-            <span className="text-sm font-semibold tracking-tight">Ironhouse Gym</span>
+          <Link href="/dashboard" className="flex items-center gap-2.5">
+            <span className="grid h-8 w-8 place-items-center rounded-lg bg-white text-xs font-bold text-ink-950 shadow-sm">IH</span>
+            <span className="text-sm font-semibold tracking-tight text-white">Ironhouse Gym</span>
           </Link>
           <div className="lg:mt-4 lg:border-t lg:border-ink-800 lg:pt-4">
             <p className="text-sm font-medium text-ink-100">

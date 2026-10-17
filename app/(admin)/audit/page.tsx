@@ -88,10 +88,10 @@ export default async function AuditPage({
               <li key={row.action}>
                 <Link
                   href={`/audit?action=${encodeURIComponent(row.action)}`}
-                  className="inline-flex items-center gap-2 rounded-full border border-ink-600 px-3 py-1 text-xs hover:border-lime-500"
+                  className="inline-flex items-center gap-2 rounded-full border border-ink-700 bg-ink-800/80 px-3 py-1 text-xs text-ink-200 transition-colors hover:border-zinc-500 hover:text-white"
                 >
                   <span className="font-mono">{row.action}</span>
-                  <span className="stat-value text-lime-500">{row.count}</span>
+                  <span className="stat-value text-white font-semibold">{row.count}</span>
                 </Link>
               </li>
             ))}

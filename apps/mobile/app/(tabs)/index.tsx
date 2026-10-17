@@ -125,7 +125,7 @@ export default function HomeScreen() {
         <Text style={styles.sectionTitle}>Check-in pass</Text>
         <Text style={styles.qrHint}>Show this at the desk. It refreshes every 90 seconds.</Text>
         <View style={styles.qrBox}>
-          {pass ? <QRCode value={pass.token} size={190} backgroundColor="#ffffff" color="#07090c" /> : <ActivityIndicator color={colors.lime} />}
+          {pass ? <QRCode value={pass.token} size={190} backgroundColor="#ffffff" color="#09090b" /> : <ActivityIndicator color={colors.white} />}
         </View>
         <Text style={styles.qrTimer}>{pass ? `Valid for ${secondsLeft}s` : 'Tap to generate'}</Text>
         <Pressable onPress={issuePass} style={styles.secondaryButton}>
@@ -178,7 +178,7 @@ export default function HomeScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { padding: spacing.lg, gap: spacing.lg, paddingBottom: 48 },
+  container: { padding: spacing.lg, gap: spacing.lg, paddingBottom: 48, backgroundColor: colors.ink950 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.ink950, gap: spacing.md },
   greeting: { color: colors.ink300, fontSize: 14 },
   card: {
@@ -196,18 +196,20 @@ const styles = StyleSheet.create({
   metaLabel: { color: colors.ink400, fontSize: 11, textTransform: 'uppercase' },
   metaValue: { color: colors.ink100, fontSize: 15, fontWeight: '600', marginTop: 2 },
   frozen: { color: colors.amber, fontSize: 12 },
-  qrCard: { backgroundColor: colors.ink850, borderRadius: radius.lg, padding: spacing.lg, alignItems: 'center', gap: spacing.sm },
+  qrCard: { backgroundColor: colors.ink850, borderRadius: radius.lg, borderWidth: 1, borderColor: colors.ink700, padding: spacing.lg, alignItems: 'center', gap: spacing.sm },
   qrHint: { color: colors.ink300, fontSize: 12, textAlign: 'center' },
-  qrBox: { backgroundColor: '#fff', padding: spacing.md, borderRadius: radius.md, marginTop: spacing.sm },
-  qrTimer: { color: colors.lime, fontSize: 12 },
-  secondaryButton: { borderColor: colors.ink600, borderWidth: 1, borderRadius: radius.md, paddingVertical: 10, paddingHorizontal: spacing.lg },
-  secondaryText: { color: colors.ink200, fontSize: 13 },
+  qrBox: { backgroundColor: '#ffffff', padding: spacing.md, borderRadius: radius.md, marginTop: spacing.sm },
+  qrTimer: { color: colors.ink300, fontSize: 12, fontWeight: '500' },
+  secondaryButton: { borderColor: colors.ink700, backgroundColor: colors.ink800, borderWidth: 1, borderRadius: radius.md, paddingVertical: 10, paddingHorizontal: spacing.lg },
+  secondaryText: { color: colors.white, fontSize: 13, fontWeight: '600' },
   sectionTitle: { color: colors.ink100, fontSize: 16, fontWeight: '700', marginTop: spacing.sm },
   listItem: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.md,
     backgroundColor: colors.ink900,
+    borderWidth: 1,
+    borderColor: colors.ink700,
     borderRadius: radius.md,
     padding: spacing.md,
   },
@@ -215,12 +217,12 @@ const styles = StyleSheet.create({
   itemTitle: { color: colors.ink100, fontSize: 15, fontWeight: '600' },
   itemSub: { color: colors.ink300, fontSize: 12, marginTop: 2 },
   itemStatus: { fontSize: 11, marginTop: 4, fontWeight: '600' },
-  smallButton: { borderColor: colors.ink600, borderWidth: 1, borderRadius: radius.sm, paddingVertical: 8, paddingHorizontal: spacing.md },
+  smallButton: { borderColor: colors.ink700, backgroundColor: colors.ink800, borderWidth: 1, borderRadius: radius.sm, paddingVertical: 8, paddingHorizontal: spacing.md },
   smallButtonText: { color: colors.ink200, fontSize: 12 },
   empty: { color: colors.ink400, fontSize: 13 },
   statsRow: { flexDirection: 'row', gap: spacing.md, marginTop: spacing.sm },
-  stat: { flex: 1, backgroundColor: colors.ink900, borderRadius: radius.md, padding: spacing.md, alignItems: 'center' },
-  statValue: { color: colors.lime, fontSize: 20, fontWeight: '700' },
+  stat: { flex: 1, backgroundColor: colors.ink900, borderWidth: 1, borderColor: colors.ink700, borderRadius: radius.md, padding: spacing.md, alignItems: 'center' },
+  statValue: { color: colors.white, fontSize: 22, fontWeight: '700' },
   statLabel: { color: colors.ink400, fontSize: 11, marginTop: 2, textAlign: 'center' },
   error: { color: colors.rose, fontSize: 13 },
 })

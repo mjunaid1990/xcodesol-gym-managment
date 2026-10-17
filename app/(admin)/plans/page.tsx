@@ -212,7 +212,7 @@ export default async function PlansPage() {
 
       <p className="mt-4 text-xs text-ink-400">
         Adjusting a price affects new sales only; existing memberships keep the price they signed up at.{' '}
-        <Link href="/members?membershipStatus=EXPIRED" className="text-lime-500">
+        <Link href="/members?membershipStatus=EXPIRED" className="text-white underline underline-offset-4 hover:text-zinc-300 transition-colors">
           Lapsed members
         </Link>{' '}
         are a good audience for a win-back code.

@@ -19,8 +19,8 @@ export default async function LoginPage() {
     <main id="main" className="grid min-h-screen lg:grid-cols-2">
       <section className="hidden flex-col justify-between border-r border-ink-800 bg-ink-900 p-10 lg:flex">
         <div>
-          <p className="text-sm font-semibold uppercase tracking-[0.3em] text-lime-500">Ironhouse</p>
-          <h1 className="mt-4 max-w-md text-4xl font-semibold leading-tight tracking-tight">
+          <p className="text-xs font-semibold uppercase tracking-[0.3em] text-ink-300">Ironhouse Console</p>
+          <h1 className="mt-4 max-w-md text-4xl font-semibold leading-tight tracking-tight text-white">
             The front desk, the timetable and the books — in one place.
           </h1>
           <p className="mt-4 max-w-md text-sm text-ink-300">
@@ -31,7 +31,7 @@ export default async function LoginPage() {
         <dl className="grid grid-cols-2 gap-6 text-sm">
           <div>
             <dt className="text-ink-400">Typical check-in</dt>
-            <dd className="stat-value mt-1 text-2xl text-lime-500">&lt; 5s</dd>
+            <dd className="stat-value mt-1 text-2xl text-white">&lt; 5s</dd>
           </div>
           <div>
             <dt className="text-ink-400">Branches supported</dt>

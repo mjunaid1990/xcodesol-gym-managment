@@ -1,34 +1,40 @@
 @import 'tailwindcss';
 
 /*
- * Ironhouse design system
- * - Dark, high-contrast UI built for a gym front desk under fluorescent light.
- * - Every colour pair below is checked against WCAG AA (4.5:1 for body text).
- * - Spacing scale: 4px base. Radius scale: 8 / 12 / 16. Touch targets: 44px minimum.
+ * Ironhouse Design System — Obsidian & Clean White Luxe
+ * - Ultra-clean, high-contrast dark & white monochrome aesthetic.
+ * - Deep obsidian surfaces, razor-sharp crisp white typography, subtle neutral borders.
+ * - Precision semantic accents (emerald, amber, rose, sky) for status states.
+ * - Base scale: 4px. Radius scale: 8 / 12 / 16. Touch targets: 44px minimum.
  */
 @theme {
-  --color-ink-950: #07090c;
-  --color-ink-900: #0b0f14;
-  --color-ink-850: #11161d;
-  --color-ink-800: #161d26;
-  --color-ink-700: #1f2733;
-  --color-ink-600: #2b3543;
-  --color-ink-400: #6b7787;
-  --color-ink-300: #98a4b3;
-  --color-ink-200: #c3ccd8;
-  --color-ink-100: #e8edf3;
+  --color-ink-950: #09090b;
+  --color-ink-900: #121215;
+  --color-ink-850: #18181b;
+  --color-ink-800: #202024;
+  --color-ink-700: #27272a;
+  --color-ink-600: #3f3f46;
+  --color-ink-400: #71717a;
+  --color-ink-300: #a1a1aa;
+  --color-ink-200: #e4e4e7;
+  --color-ink-100: #fafafa;
 
-  --color-lime-500: #b8f23c;
-  --color-lime-400: #cbf85f;
-  --color-lime-600: #94cc1f;
+  /* Clean White Accent & Crisp Highlights */
+  --color-lime-500: #ffffff;
+  --color-lime-400: #f4f4f5;
+  --color-lime-600: #e4e4e7;
 
-  --color-sky-400: #4cc9f0;
-  --color-amber-400: #f5b642;
-  --color-rose-400: #f0667a;
-  --color-violet-400: #a78bfa;
+  /* Refined Semantic Accents */
   --color-emerald-400: #34d399;
+  --color-emerald-500: #10b981;
+  --color-amber-400: #fbbf24;
+  --color-amber-500: #f59e0b;
+  --color-rose-400: #fb7185;
+  --color-rose-500: #f43f5e;
+  --color-sky-400: #38bdf8;
+  --color-violet-400: #a78bfa;
 
-  --font-sans: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
   --radius-card: 16px;
 }
 
@@ -42,46 +48,51 @@ body {
   color: var(--color-ink-100);
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-/* Focus ring is always visible for keyboard users, never for mouse users. */
+/* Crisp focus ring with clean white offset for keyboard accessibility */
 :focus-visible {
-  outline: 2px solid var(--color-lime-500);
+  outline: 2px solid rgba(255, 255, 255, 0.85);
   outline-offset: 2px;
 }
 
 ::selection {
-  background: var(--color-lime-500);
-  color: #07090c;
+  background: #ffffff;
+  color: #09090b;
 }
 
-/* Slim scrollbars keep dense tables readable. */
+/* Minimalist scrollbars */
 * {
   scrollbar-width: thin;
-  scrollbar-color: var(--color-ink-600) transparent;
+  scrollbar-color: var(--color-ink-700) transparent;
 }
 *::-webkit-scrollbar {
-  width: 10px;
-  height: 10px;
+  width: 8px;
+  height: 8px;
 }
 *::-webkit-scrollbar-thumb {
-  background: var(--color-ink-600);
+  background: var(--color-ink-700);
   border-radius: 999px;
+}
+*::-webkit-scrollbar-thumb:hover {
+  background: var(--color-ink-600);
 }
 *::-webkit-scrollbar-track {
   background: transparent;
 }
 
 @utility card {
-  background: linear-gradient(180deg, color-mix(in srgb, var(--color-ink-800) 92%, white 8%), var(--color-ink-850));
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.025) 0%, rgba(255, 255, 255, 0) 100%), var(--color-ink-850);
   border: 1px solid var(--color-ink-700);
   border-radius: var(--radius-card);
+  box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.45);
 }
 
 @utility stat-value {
   font-variant-numeric: tabular-nums;
   font-weight: 650;
-  letter-spacing: -0.02em;
+  letter-spacing: -0.025em;
 }
 
 @media print {

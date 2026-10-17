@@ -97,7 +97,7 @@ export default async function StaffPage({ searchParams }: { searchParams: Promis
                     />
                   </span>
                 ) : (
-                  <Link href={`/classes?trainerId=${person.id}`} className="text-xs text-ink-300 hover:text-lime-500">
+                  <Link href={`/classes?trainerId=${person.id}`} className="text-xs text-ink-300 hover:text-white transition-colors">
                     Schedule →
                   </Link>
                 )}

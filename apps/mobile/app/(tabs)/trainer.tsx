@@ -126,11 +126,11 @@ export default function TrainerScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { padding: spacing.lg, gap: spacing.md, paddingBottom: 48 },
+  container: { padding: spacing.lg, gap: spacing.md, paddingBottom: 48, backgroundColor: colors.ink950 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.ink950 },
   heading: { color: colors.ink100, fontSize: 20, fontWeight: '700' },
-  card: { backgroundColor: colors.ink900, borderRadius: radius.md, padding: spacing.md, gap: spacing.sm },
-  time: { color: colors.lime, fontSize: 12, fontWeight: '700' },
+  card: { backgroundColor: colors.ink900, borderWidth: 1, borderColor: colors.ink700, borderRadius: radius.md, padding: spacing.md, gap: spacing.sm },
+  time: { color: colors.white, fontSize: 12, fontWeight: '700' },
   title: { color: colors.ink100, fontSize: 16, fontWeight: '600', marginTop: 2 },
   meta: { color: colors.ink300, fontSize: 12, marginTop: 2 },
   roster: { borderTopColor: colors.ink700, borderTopWidth: 1, paddingTop: spacing.sm, gap: spacing.sm },
@@ -138,7 +138,7 @@ const styles = StyleSheet.create({
   flex: { flex: 1 },
   memberName: { color: colors.ink100, fontSize: 14 },
   memberMeta: { color: colors.ink400, fontSize: 11 },
-  checkButton: { backgroundColor: colors.lime, borderRadius: radius.sm, paddingVertical: 8, paddingHorizontal: spacing.md },
+  checkButton: { backgroundColor: colors.white, borderRadius: radius.sm, paddingVertical: 8, paddingHorizontal: spacing.md },
   checkText: { color: colors.ink950, fontWeight: '700', fontSize: 12 },
   checked: { color: colors.emerald, fontSize: 12, fontWeight: '700' },
   empty: { color: colors.ink400, fontSize: 13 },

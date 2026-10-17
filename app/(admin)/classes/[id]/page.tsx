@@ -70,7 +70,7 @@ export default async function SessionPage({ params }: { params: Promise<{ id: st
               {roster.roster.map((row) => (
                 <tr key={row.bookingId} className="hover:bg-ink-800/40">
                   <td className="px-4 py-3">
-                    <Link href={`/members/${row.memberId}`} className="font-medium hover:text-lime-500">
+                    <Link href={`/members/${row.memberId}`} className="font-medium hover:text-white transition-colors">
                       {row.firstName} {row.lastName}
                     </Link>
                     <p className="text-xs text-ink-400">{row.email}</p>

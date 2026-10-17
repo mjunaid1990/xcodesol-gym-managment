@@ -1,135 +1,469 @@
-# Gym Management System — Master Build Brief
+# Gym Management System — Master Build Specification & Engineering Brief
 
-> This file is the single source of truth for the project: what we are building, the
-> decisions already made, the questions that still need a human answer, and how to run
-> everything. Keep it updated as decisions land.
+> **Single Source of Truth** for the Ironhouse Gym Management Platform.
+> This specification defines product requirements, the **Obsidian & Clean White Luxe** design system,
+> comprehensive data structures, state machine lifecycles, and production delivery standards.
+> Both the **Web Operations Console** and the **Mobile Member/Trainer App** must strictly adhere
+> to these design and architectural standards to ensure an ultra-clean, professional, and unified experience.
 
-**Status:** MVP in progress · **Repo layout:** pnpm monorepo (`apps/api`, `apps/web`, `apps/mobile`) · **Last updated:** 2026-10-17
-
----
-
-## 1. Product summary
-
-One platform that replaces paper sign-in sheets, spreadsheets, and a patchwork of
-front-desk tools for independent gyms and small fitness chains.
-
-| Surface | Users | Jobs to be done |
-| --- | --- | --- |
-| **Mobile app** (iOS/Android) | Members, Trainers | Join/renew, book and cancel classes, QR check-in, see visits, payments, push reminders, run today's class |
-| **Web admin** | Owner, Manager, Front desk | Run daily operations: members, plans, schedule, check-ins, payments, refunds, reports, staff, announcements, audit |
-| **API** | both, plus future integrations | Single REST contract, RBAC, audit trail, webhooks |
-
-**Success criteria (from the brief):** staff run a full day without paper or spreadsheets;
-members book, pay, and check in from their phone.
-
-**Product principles**
-
-1. **Front desk speed first.** Check-in and member lookup must work in under 5 seconds, keyboard-first, offline-tolerant on flaky gym Wi-Fi.
-2. **Money is never ambiguous.** Every charge, refund, and credit is an immutable ledger row. No "editing" a payment — you reverse it.
-3. **One source of truth per fact.** Capacity lives on the session; entitlement lives on the membership; the booking only references them.
-4. **Boring, boring, boring.** A gym at 6am cannot debug a clever architecture. Modular monolith, one database, explicit transactions.
-5. **Accessible by default.** WCAG 2.1 AA, 44px touch targets, contrast-checked tokens, full keyboard navigation on web.
+**Status:** Production-Ready Architecture & MVP Implementation  
+**Repo Layout:** Modular Architecture (`apps/mobile` Expo, Next.js 16 Web Console & REST API under `/api/v1`)  
+**Design Paradigm:** Obsidian & Clean White Luxe (High-Contrast Monochrome with Precision Status Accents)  
+**Last Updated:** 2026-10-17  
 
 ---
 
-## 2. Discovery questions (10)
+## 1. Product Summary & System Vision
 
-Each question has the **default we are building against** so work could start immediately.
-Change a default and the affected parts of the plan get re-scoped.
+Ironhouse replaces paper sign-in sheets, fragmented spreadsheets, and clunky legacy front-desk terminals with a unified, high-performance platform for independent gyms and multi-branch fitness chains.
 
-| # | Question | Default chosen for the MVP | Impact if different |
-| --- | --- | --- | --- |
-| 1 | How many members today, and how many in 12 months? | 1,500 today → 10,000. Indexed queries, pagination everywhere, no full-table scans in list endpoints. | Above ~50k members we add read replicas + materialized report tables. |
-| 2 | How many branches / locations? | 3 branches, multi-branch from day one (every entity is branch-scoped, staff can be assigned to one). | Single location would let us drop `branchId` scoping and simplify roles to 2. |
-| 3 | Payments: which provider and countries? | **Stripe** (Cards + Apple/Google Pay via Payment Element, SCA-ready). Provider is behind a `PaymentProvider` port so Adyen/Razorpay can be added. | Non-Stripe market → swap the adapter only; ledger/refund logic unchanged. |
-| 4 | Who handles refunds and chargebacks? | Manager role and above can refund; every refund is audited with a reason code. | Member-initiated refunds would need a request/approval workflow (phase 2). |
-| 5 | Do you need door hardware integration (turnstiles, NFC readers)? | **No for MVP.** QR pass (rotating, signed, 60s TTL) is scanned by staff phones, plus manual check-in. Door hardware is phase 2 behind a webhook. | Hardware in scope → add device gateway service + offline allowlist cache. |
-| 6 | Are class packs / credits needed, or memberships only? | Both: unlimited memberships **and** class packs with credits, plus one-off day passes. | Memberships only → remove `creditsRemaining` and pack enforcement. |
-| 7 | Existing data to migrate? | Yes — CSV export from the current system (members, plans, active memberships, visit history). Importer + dry-run report included in launch docs. | Greenfield → skip the importer, but keep the CSV templates for bulk onboarding. |
-| 8 | Tax handling? | Prices are tax-inclusive, single rate per branch, stored on the invoice at issue time. | US-style tax-exclusive pricing → add tax calculation before totals, keep invoice snapshot. |
-| 9 | Do you need payroll processing, or just hours? | Just **trainer hours from the schedule + check-in**, exported as CSV for the payroll provider. | Full payroll integration → phase 3. |
-| 10 | Budget / timeline for the MVP? | 12 weeks, 4 people (1 backend, 1 full-stack web, 1 mobile, 1 designer/PM part-time). | Half the team → cut member mobile trainer tools and campaigns from MVP. |
-
-**Non-negotiables we are not asking about:** HTTPS everywhere, PCI SAQ-A (card data never
-touches our servers), GDPR-style export/delete, audit log on every mutation, 99.9% uptime
-target, automated tests in CI.
-
----
-
-## 3. Decisions made (and why)
-
-| Area | Decision | Why this, not the alternative |
-| --- | --- | --- |
-| Backend | **Next.js 16 Route Handlers + TypeScript**, modular monolith (one deployable) | The brief suggested NestJS/Django as a separate service. On Vercel a second long-running Node process is a liability: no containers, no always-on server. Route handlers under `/api/v1` give the same REST surface, one deploy, one set of env vars, and shared types with the dashboard. A `lib/api/router.ts` table documents every endpoint with its required permission. |
-| ORM / DB | **Drizzle ORM + PostgreSQL** — embedded **PGlite** locally, pooled **Neon** Postgres in production | One Postgres dialect everywhere (no SQLite/Postgres drift), typed SQL, and SQL migrations that are reviewable in a pull request. Locally the app boots an embedded Postgres in `.data/pglite`, so `npm install && npm run db:setup && npm run dev` needs no Docker and no server. In production `DATABASE_URL` points at a pooled Neon instance. |
-| Validation | **Zod** at the HTTP edge, single source for request/response types | One schema generates runtime validation + TypeScript types; no duplicated DTOs. |
-| Auth | **JWT access (15 min) + rotating opaque refresh token (30 days, hashed in DB)** | Revocable sessions (logout-all, "signed in on 3 devices") without a Redis session store. Web transports the refresh token in an httpOnly cookie; mobile in the secure store. |
-| Payments | **Stripe** behind a `PaymentProvider` interface, hosted Payment Element, webhook-driven state | Card data never hits our servers (SAQ-A). Local dev uses a mock provider so the whole purchase/refund flow is testable offline. |
-| Web | **Next.js 16 App Router + Tailwind v4**, in-repo primitive components | Server components query the database directly (no HTTP hop), for fast first paint (<2s target). Primitives live in `components/ui.tsx` so we are not locked to a UI kit's upgrade cycle and the palette stays accessible. |
-| Mobile | **Expo (React Native) + expo-router** | One codebase for iOS/Android, OTA updates for JS-only fixes, and EAS builds for store submission without a Mac in the loop for Android. |
-| Jobs | **Vercel Cron** → `/api/cron/[job]` (expiry, reminders, payment retries, no-show sweep, delivery retry) | No worker process to babysit, no queue service to pay for. Jobs are idempotent and bounded so a daily run always finishes; when volume grows, the same handlers move to a queue without changing business logic. |
-| Observability | Structured JSON logs from route handlers, `/api/health` (liveness + database check), Vercel Analytics + Sentry DSN slot, and an audit table for every mutation | 99.9% needs evidence: error rate, p95 latency of `/api/v1/*`, payment failure rate, webhook lag. |
-| Hosting | **Vercel** (one project, preview + production) + **Neon Postgres** | Zero containers. Preview deployments per pull request, instant rollbacks, cron, and env vars in one place. Nothing in the code assumes a long-running process. |
-
----
-
-## 4. MVP vs. later
-
-**MVP (12 weeks)** — auth + 5 roles + RBAC, member profiles/waivers, plans + discounts,
-purchase/renew/freeze/cancel, Stripe payments + invoices + refunds, recurring classes with
-conflict detection, booking + waitlist auto-promotion + late-cancel penalty, QR + manual
-check-in, dashboards/reports with CSV export, announcements, audit log, admin CRUD,
-member mobile app, trainer mobile view, push/email notifications.
-
-**Phase 2** — SMS campaigns, member self-serve freeze, door hardware, corporate/family
-memberships, POS for retail, waitlist AI suggestions, native biometric check-in,
-multi-currency, Zapier/webhooks for partners, advanced cohort retention.
-
-**Phase 3** — payroll integration, white-label mobile apps, franchise hierarchy,
-class recommendations, churn prediction, dynamic pricing.
-
-Full detail and rationale: [`docs/02-scope.md`](docs/02-scope.md).
-
----
-
-## 5. How to run
-
-```bash
-npm install
-cp .env.example .env          # AUTH_SECRET is required; DATABASE_URL stays empty locally
-npm run db:reset              # create the embedded database, migrate, seed the demo gym
-npm run dev                   # http://localhost:3000 (dashboard + API)
-npm test                      # unit + integration tests against a throwaway Postgres
-cd apps/mobile && npm install && npm start   # Expo app (iOS/Android)
+```
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│                                IRONHOUSE PLATFORM                               │
+├───────────────────────────────┬─────────────────────────────────────────────────┤
+│  📱 Member & Trainer App       │  💻 Web Operations Console                      │
+│  (iOS / Android via Expo)      │  (Next.js 16 App Router · Server Components)    │
+│  - Rotating Dynamic QR Pass   │  - 5-Second Rapid Check-in Console              │
+│  - 1-Tap Class Booking & WL   │  - Real-time Floor & Attendance Roster          │
+│  - Digital Waiver & Profile   │  - Immutable Billing & Ledger Reconciliation    │
+│  - Trainer Roster & Check-in  │  - Class Timetable & Capacity Management        │
+│  - Push Alerts & Reminders    │  - Multi-Branch Analytics & Audit Trail         │
+├───────────────────────────────┴─────────────────────────────────────────────────┤
+│                  ⚡ REST API Engine & Shared Domain Services                     │
+│    (/api/v1/* · Zod Edge Validation · Drizzle ORM · PGlite Local / Neon Prod)   │
+└─────────────────────────────────────────────────────────────────────────────────┘
 ```
 
-**Deploying to Vercel:** import the repo, set `DATABASE_URL` (Neon pooled connection
-string), `AUTH_SECRET`, `NEXT_PUBLIC_APP_URL`, then run `npm run db:migrate` against the
-production database and deploy. Optional: `STRIPE_SECRET_KEY` + `STRIPE_WEBHOOK_SECRET`,
-`RESEND_API_KEY`, Twilio credentials, `CRON_SECRET`. Full checklist in
-[`docs/07-launch.md`](docs/07-launch.md).
+### Core Product Principles
 
-Demo logins (seeded): `admin@ironhouse.test / Passw0rd!` (Admin),
-`manager@ironhouse.test` (Manager), `frontdesk@ironhouse.test` (Staff),
-`trainer@ironhouse.test` (Trainer), `member@ironhouse.test` (Member). Password for all:
-`Passw0rd!`.
+1. **The 5-Second Front Desk Guarantee:** Check-in and member lookup must complete in under 5 seconds. Keyboard-first navigation (`/` to focus search, `Ctrl/Cmd+K` palette, `Esc` dismiss), offline-tolerant local cache, and zero-latency feedback.
+2. **Obsidian & Clean White Minimalism:** No garish, muddy, or amateur neon color schemes. A disciplined, high-contrast monochrome design language (deep obsidian surfaces, razor-sharp clean white typography, refined neutral borders, and subtle translucent status badges).
+3. **Immutable Financial Ledger:** Money is never edited in place or ambiguous. Every fee, charge, refund, and discount is an append-only ledger transaction with full audit trails.
+4. **Strict Data State Machines:** Entitlements, memberships, class capacity, waitlists, and attendances are governed by deterministic finite state machines. No orphan states or double-bookings.
+5. **Zero Webfont Lag & High Performance:** Fast first paint (<1.2s), native system font hierarchy, tabular numbers for monetary/metric displays, and instant optimistic feedback.
 
 ---
 
-## 6. Definition of done (per feature)
+## 2. "Obsidian & Clean White Luxe" UI/UX Design System
 
-- [ ] Zod-validated endpoint, RBAC permission, audit log on mutation
-- [ ] Unit test for the rule (capacity, waitlist, freeze math, refund, proration)
-- [ ] Integration test over HTTP (`app.inject`) including 401/403 paths
-- [ ] UI state for loading / empty / error / forbidden, keyboard reachable
-- [ ] Documented in `docs/03-architecture.md` API outline
-- [ ] Flagged in `docs/07-launch.md` if it needs a runbook (payments, migrations)
+Both the **Web Console** and **Mobile App** share an identical visual language, creating an immediate sense of polish, premium craft, and professional authority.
 
-## 7. Open risks (watch list)
+### 2.1 Color Palette & Contrast Tokens
 
-1. **Payment state drift** — webhook lost, member charged twice. Mitigation: idempotency keys, reconciliation job, `payment.status` transition guard.
-2. **Peak-hour booking stampede** — 60 people booking a 20-bike class at 7:00:00. Mitigation: conditional capacity update inside a transaction, unique `(sessionId, memberId)` constraint.
-3. **No-shows after late cancel** — policy is only real if enforced. Mitigation: server-side cut-off (never trust client clock), penalty as invoice line, audit trail.
-4. **Data migration quality** — duplicate members, broken emails. Mitigation: dry-run importer with a rejects CSV, run twice against staging.
-5. **Store review delays** — account deletion requirement, privacy manifest. Mitigation: ship those in MVP, submit 2 weeks before launch.
-6. **Staff adoption** — the killer of gym software. Mitigation: 5-second check-in target, keyboard shortcuts, train-the-trainer sessions, paper fallback sheet for week 1.
+The palette pairs deep, neutral obsidian darks with pristine, crisp whites and subtle specular borders. Semantic colors are strictly reserved for live operational states.
+
+| Token | Hex Value | Web (Tailwind / CSS Var) | Mobile Token (`theme.ts`) | Purpose |
+| --- | --- | --- | --- | --- |
+| **Obsidian 950** | `#09090b` | `--color-ink-950` / `bg-ink-950` | `colors.ink950` | Primary app canvas / backdrop |
+| **Surface 900** | `#121215` | `--color-ink-900` / `bg-ink-900` | `colors.ink900` | Elevated panels, sidebars, sheets |
+| **Card Surface 850** | `#18181b` | `--color-ink-850` / `bg-ink-850` | `colors.ink850` | Primary card containers, tables |
+| **Raised Surface 800** | `#202024` | `--color-ink-800` / `bg-ink-800` | `colors.ink800` | Hover states, raised chips, input fills |
+| **Border Neutral 700** | `#27272a` | `--color-ink-700` / `border-ink-700` | `colors.ink700` | Default card borders, dividers (3:1 contrast) |
+| **Border Active 600** | `#3f3f46` | `--color-ink-600` / `border-ink-600` | `colors.ink600` | Focused borders, active state dividers |
+| **Muted Text 400** | `#71717a` | `--color-ink-400` / `text-ink-400` | `colors.ink400` | Meta labels, captions, uppercase hints |
+| **Secondary Text 300** | `#a1a1aa` | `--color-ink-300` / `text-ink-300` | `colors.ink300` | Secondary descriptions, subtitles (AA on 900) |
+| **High-Read Text 200** | `#e4e4e7` | `--color-ink-200` / `text-ink-200` | `colors.ink200` | Table cell data, subheadings |
+| **Pure Crisp White 100**| `#fafafa` / `#ffffff` | `--color-ink-100` / `text-white` | `colors.ink100` / `colors.white` | Primary headlines, metric values, high contrast |
+| **Primary White Action**| `#ffffff` | `bg-white text-ink-950` | `colors.lime` (white CTA) | Primary CTA buttons, focused badge states |
+
+#### Semantic Status Accents (Refined & Subtle)
+
+Status is **never color-only** — badges always pair an explicit text descriptor with a subtle translucent fill and colored border:
+
+- **Emerald (Active / Succeeded / Paid / Checked-in):** Fill `rgba(16, 185, 129, 0.10)`, Border `rgba(16, 185, 129, 0.25)`, Text `#34d399`
+- **Amber (Pending / Frozen / Waitlist / Aging Invoice):** Fill `rgba(245, 158, 11, 0.10)`, Border `rgba(245, 158, 11, 0.25)`, Text `#fbbf24`
+- **Rose (Expired / Cancelled / Failed / No-Show):** Fill `rgba(244, 63, 94, 0.10)`, Border `rgba(244, 63, 94, 0.25)`, Text `#fb7185`
+- **Sky (Scheduled / Informational / Broadcast):** Fill `rgba(56, 189, 248, 0.10)`, Border `rgba(56, 189, 248, 0.25)`, Text `#38bdf8`
+
+### 2.2 Typography Hierarchy
+
+- **Font Family:** Native system font stack (`-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif`). Zero layout shift (FOUT), instant rendering, native platform feel.
+- **Page Titles:** `24px / 650` (`tracking-tight`), crisp white (`#ffffff`).
+- **Section Headers:** `15px / 600` with subtle count badge.
+- **Body Text:** `14px / 400` with line-height `1.55`, secondary text (`#a1a1aa`).
+- **Table Data & Currency:** `13px` with `tabular-nums` (`font-variant-numeric: tabular-nums; -0.025em tracking`).
+- **Uppercase Metadata:** `11px / 600` (`uppercase`, `tracking-wider`, `#71717a`).
+
+### 2.3 Component Blueprint & Visual Standards
+
+1. **Cards & Panels:**
+   - Background: `linear-gradient(180deg, rgba(255, 255, 255, 0.025) 0%, rgba(255, 255, 255, 0) 100%), #18181b`.
+   - Border: `1px solid #27272a`.
+   - Radius: `16px` (`rounded-2xl`).
+   - Shadow: `0 4px 20px -2px rgba(0, 0, 0, 0.45)`.
+2. **Buttons:**
+   - **Primary CTA:** Clean crisp white background (`#ffffff`), pitch dark text (`#09090b`), font-weight 600, hover to `#e4e4e7`, subtle active micro-scale (`active:scale-[0.99]`).
+   - **Secondary Button:** Surface dark (`#202024`), border `1px solid #27272a`, text `#fafafa`, hover to `#27272a`.
+   - **Danger Button:** `bg-rose-500/10 text-rose-400 border border-rose-500/25 hover:bg-rose-500/20`.
+   - **Touch Target:** Minimum `44×44px` on mobile, `36px` height on desktop data tables.
+3. **Form Inputs & Selects:**
+   - Height `44px`, background `#121215`, border `1px solid #27272a`, placeholder `#71717a`, text `#fafafa`.
+   - Focus ring: `outline: none; border-color: #a1a1aa; box-shadow: 0 0 0 1px #a1a1aa`.
+4. **Data Tables:**
+   - Compact table headers with uppercase `11px` labels.
+   - Row dividers with `#202024`. Row hover with subtle highlight `hover:bg-ink-800/50`.
+   - Empty states include a clear descriptive explanation and an immediate single-click action.
+
+---
+
+## 3. Comprehensive Data Structure & Entity Architecture
+
+The data architecture is fully normalized, strictly typed, branch-scoped, and audit-logged.
+
+### 3.1 Entity Relationship Diagram (ERD)
+
+```mermaid
+erDiagram
+  BRANCHES ||--o{ USERS : "assigned to"
+  BRANCHES ||--o{ ROOMS : "contains"
+  BRANCHES ||--o{ CLASS_SESSIONS : "hosts"
+  BRANCHES ||--o{ INVOICES : "issues"
+
+  USERS ||--|| MEMBER_PROFILES : "extends"
+  USERS ||--o{ SESSIONS : "refresh sessions"
+  USERS ||--o{ MEMBERSHIPS : "holds"
+  USERS ||--o{ BOOKINGS : "makes"
+  USERS ||--o{ ATTENDANCE : "logs visits"
+  USERS ||--o{ AUDIT_LOGS : "triggers"
+
+  PLANS ||--o{ MEMBERSHIPS : "purchased as"
+  MEMBERSHIPS ||--o{ MEMBERSHIP_EVENTS : "timeline"
+  MEMBERSHIPS ||--o{ INVOICES : "billed by"
+  INVOICES ||--o{ PAYMENTS : "settled by"
+  PAYMENTS ||--o{ REFUNDS : "refunded by"
+
+  CLASS_TEMPLATES ||--o{ CLASS_SESSIONS : "generates"
+  USERS ||--o{ CLASS_SESSIONS : "instructs"
+  CLASS_SESSIONS ||--o{ BOOKINGS : "contains"
+  CLASS_SESSIONS ||--o{ ATTENDANCE : "class visits"
+```
+
+### 3.2 Canonical Data Schemas
+
+#### 1. Core Users & Roles
+```typescript
+interface User {
+  id: string              // UUID v4
+  branchId: string | null // Scoped branch ID
+  email: string           // Unique, normalized lowercase
+  phone: string | null    // Unique, E.164 formatted
+  passwordHash: string    // bcrypt hash
+  firstName: string
+  lastName: string
+  role: 'OWNER' | 'ADMIN' | 'MANAGER' | 'STAFF' | 'TRAINER' | 'MEMBER'
+  status: 'ACTIVE' | 'SUSPENDED' | 'PENDING'
+  avatarUrl: string | null
+  jobTitle: string | null
+  hourlyRateCents: number | null // For payroll export
+  pushTokens: string[]           // Expo push tokens
+  createdAt: string              // ISO 8601
+  updatedAt: string
+}
+
+interface MemberProfile {
+  id: string
+  userId: string                 // 1-to-1 with User
+  dateOfBirth: string | null     // YYYY-MM-DD
+  gender: string | null
+  addressLine: string | null
+  city: string | null
+  postalCode: string | null
+  emergencyContactName: string | null
+  emergencyContactPhone: string | null
+  healthNotes: string | null     // Par-Q / injuries (restricted access)
+  waiverSignedAt: string | null  // ISO timestamp of digital signature
+  waiverVersion: string | null
+  marketingOptIn: boolean
+}
+```
+
+#### 2. Plans & Memberships
+```typescript
+interface Plan {
+  id: string
+  branchId: string | null        // null = all branches
+  name: string                   // e.g., "Annual Unlimited", "10-Class Pack"
+  slug: string
+  type: 'UNLIMITED' | 'CLASS_PACK' | 'DAY_PASS' | 'RECURRING'
+  intervalDays: number | null    // 30, 365
+  priceCents: number             // Minor currency units (e.g., $149.00 -> 14900)
+  classCredits: number | null    // null = unlimited
+  freezeAllowanceDays: number    // Yearly max freeze days (e.g., 30)
+  cancellationWindowHours: number // Late cancel threshold (default 6)
+  isActive: boolean
+}
+
+interface Membership {
+  id: string
+  userId: string
+  planId: string
+  branchId: string
+  status: 'ACTIVE' | 'FROZEN' | 'EXPIRED' | 'CANCELLED' | 'PENDING'
+  startsAt: string               // ISO timestamp
+  endsAt: string                 // Extended automatically when frozen
+  creditsRemaining: number | null
+  frozenDaysUsed: number
+  freezeEndsAt: string | null
+  autoRenew: boolean
+  cancelledAt: string | null
+  cancelReason: string | null
+}
+```
+
+#### 3. Timetable, Sessions & Capacity Allocations
+```typescript
+interface ClassSession {
+  id: string
+  branchId: string
+  templateId: string | null
+  roomId: string | null
+  trainerId: string | null
+  title: string
+  startsAt: string               // ISO timestamp
+  endsAt: string
+  capacity: number               // Max spots on the floor (e.g. 20)
+  bookedCount: number            // Current confirmed bookings
+  waitlistCount: number          // Current waitlist entries
+  status: 'SCHEDULED' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED'
+}
+
+interface Booking {
+  id: string
+  sessionId: string
+  memberId: string
+  status: 'BOOKED' | 'WAITLISTED' | 'ATTENDED' | 'CANCELLED' | 'NO_SHOW'
+  waitlistPosition: number | null // 1, 2, 3...
+  lateCancel: boolean            // Flagged if cancelled within cancellation window
+  creditCharged: boolean         // Whether a credit or fee penalty was incurred
+  bookedAt: string
+  cancelledAt: string | null
+}
+```
+
+#### 4. Immutable Billing, Invoices & Ledger
+```typescript
+interface Invoice {
+  id: string
+  branchId: string
+  memberId: string
+  membershipId: string | null
+  number: string                 // Sequential human-readable, e.g. "INV-2026-0041"
+  status: 'DRAFT' | 'OPEN' | 'PAID' | 'VOID' | 'UNCOLLECTIBLE'
+  subtotalCents: number
+  taxCents: number               // Tax-inclusive breakdown
+  totalCents: number
+  issuedAt: string
+  dueAt: string
+  paidAt: string | null
+}
+
+interface Payment {
+  id: string
+  invoiceId: string
+  memberId: string
+  provider: 'STRIPE' | 'CASH' | 'TERMINAL' | 'MOCK'
+  status: 'SUCCEEDED' | 'PENDING' | 'FAILED' | 'REFUNDED'
+  amountCents: number
+  currency: string               // 'USD'
+  externalPaymentId: string | null // Stripe PaymentIntent ID (pi_...)
+  receiptUrl: string | null
+  createdAt: string
+}
+
+interface Refund {
+  id: string
+  paymentId: string
+  amountCents: number
+  reason: 'DUPLICATE' | 'REQUESTED_BY_CUSTOMER' | 'FRAUDULENT' | 'SERVICE_CREDIT'
+  notes: string | null
+  createdById: string            // Staff who issued the refund
+  createdAt: string
+}
+```
+
+#### 5. Check-in, Access & Attendance
+```typescript
+interface Attendance {
+  id: string
+  branchId: string
+  memberId: string
+  sessionId: string | null       // Optional link to booked class
+  method: 'QR' | 'MANUAL' | 'NFC' | 'KIOSK' | 'CLASS_ROSTER'
+  checkedInAt: string
+  staffUserId: string | null     // Present if manually admitted by staff
+}
+
+/** Dynamic 60-Second Rotating Pass Payload */
+interface PassPayload {
+  token: string                  // HMAC-SHA256 signed JWT
+  expiresAt: string              // 60-second TTL
+  memberId: string
+  memberName: string
+  membershipStatus: string
+  visitsToday: number
+}
+```
+
+### 3.3 Domain State Machines
+
+#### 1. Membership Lifecycle
+```mermaid
+stateDiagram-v2
+  [*] --> PENDING : Purchase Initiated
+  PENDING --> ACTIVE : Payment Confirmed / Succeeded
+  PENDING --> CANCELLED : Payment Aborted / Declined
+
+  ACTIVE --> FROZEN : Staff / Member Freezes (within allowance)
+  FROZEN --> ACTIVE : Unfreeze (End date extended by elapsed days)
+
+  ACTIVE --> EXPIRED : Current Date > endsAt
+  ACTIVE --> CANCELLED : Terminated by Staff / Member
+
+  EXPIRED --> ACTIVE : Renewed (New period appends to end date)
+  CANCELLED --> [*]
+```
+
+#### 2. Class Booking & Capacity Lifecycle
+```mermaid
+stateDiagram-v2
+  [*] --> Evaluating : User Requests Booking
+
+  Evaluating --> BOOKED : Capacity Available (bookedCount < capacity)
+  Evaluating --> WAITLISTED : Class Full (bookedCount == capacity)
+
+  WAITLISTED --> BOOKED : Auto-Promoted on Cancellation
+  WAITLISTED --> CANCELLED : Member Leaves Waitlist
+
+  BOOKED --> ATTENDED : QR Scanned at Desk or Trainer Check-in
+  BOOKED --> CANCELLED : Cancelled > Cancellation Window (Credit Returned)
+  BOOKED --> LATE_CANCELLED : Cancelled < Cancellation Window (Penalty / 1 Credit Used)
+  BOOKED --> NO_SHOW : Class Ended without Check-in
+```
+
+### 3.4 Standardized API Response Envelopes
+
+All HTTP endpoints return standardized JSON contracts:
+
+```typescript
+// Standard Success Response
+interface ApiResponse<T> {
+  data: T
+  meta?: {
+    total?: number
+    page?: number
+    pageSize?: number
+    timestamp: string
+  }
+}
+
+// Standard RFC-7807 Compliant Error Response
+interface ApiErrorResponse {
+  error: {
+    code: string        // e.g. "CLASS_FULL", "MEMBERSHIP_FROZEN", "UNAUTHORIZED"
+    message: string     // Human-readable sentence explaining the issue
+    details?: unknown   // Validation error array or contextual metadata
+  }
+}
+```
+
+---
+
+## 4. Web Console & Mobile App Specifications
+
+### 4.1 Web Operations Console (Desktop & Tablet)
+
+- **Layout Grid:** Fixed sleek sidebar (`lg:w-64`) with clear grouping: *Run the gym* (Overview, Check-in, Timetable, Members), *Money* (Payments, Plans & Pricing), *Insight* (Reports, Staff & Payroll, Announcements), *Settings* (Audit log, Settings).
+- **5-Second Check-in Desk (`/checkin`):**
+  - Instant focus on load (`/` shortcut).
+  - Search members across names, phones, emails, and member numbers with zero debounce lag.
+  - Big visual status confirmation:
+    - **Green Full-Screen Banner:** "Maya Patel · Annual Unlimited · 24 visits left · ADMITTED".
+    - **Red Attention Banner:** "Noah Kim · Membership Expired on 12 Oct · [Quick Renew Button]".
+    - **Inline Action Drawers:** Take card/cash payment, update expired waiver, unfreeze membership without leaving the check-in desk.
+- **Data Tables & Filters:**
+  - Sticky table headers, responsive scrolling with sleek custom scrollbars.
+  - Filter toolbar with instant search, status dropdowns, date pickers, and direct CSV export.
+  - Real-time stat summary cards with tabular numbers and trend sparklines.
+
+### 4.2 Mobile Member & Trainer App (Expo iOS/Android)
+
+- **Member Home Tab (`/`):**
+  - **Dynamic Pass Card:** High-contrast pure white QR box (ensures flawless barcode scanning under dim gym floor lighting).
+  - Countdown timer: "Refreshes in 42s" with live rotating cryptographic token.
+  - Next Class Card: 1-tap view of tomorrow's class with studio location and trainer photo.
+  - Membership Status Chip: Clean badge with expiration date and remaining visits count.
+- **Classes Tab (`/classes`):**
+  - Horizontal calendar day selector with dot indicators for booked sessions.
+  - Session Card: Class title, trainer name, room, time, spots remaining pill (`18/20`).
+  - 1-Tap Booking with instantaneous optimistic UI update.
+- **Trainer View Tab (`/trainer`):**
+  - Filtered view of today's classes assigned to the signed-in trainer.
+  - Full attendee roster with check-in toggles (`Attended`, `No-show`) and flagged health/injury notes.
+
+---
+
+## 5. Security, Concurrency & Database Indexing
+
+1. **Atomic Booking Concurrency:**
+   - Class capacity updates run inside an explicit PostgreSQL `SERIALIZABLE` transaction or utilize a conditional atomic query:
+     `UPDATE class_sessions SET booked_count = booked_count + 1 WHERE id = $1 AND booked_count < capacity`
+   - Guaranteed prevention of race conditions during peak 7:00:00 booking stampedes.
+2. **Essential Database Indexes:**
+   - `bookings(session_id, status)` — Instant class roster and capacity counts.
+   - `class_sessions(branch_id, starts_at)` — Fast timetable queries.
+   - `attendance(member_id, checked_in_at)` — Rapid attendance history lookup.
+   - `invoices(status, due_at)` — Instant overdue debt scanning.
+   - `users(role, branch_id)` — Rapid role-based querying.
+   - `memberships(user_id, status)` — O(1) entitlement check during check-in.
+3. **Session & Token Security:**
+   - Web authentication: httpOnly, secure, SameSite=Lax JWT cookies.
+   - Mobile authentication: Secure store Bearer tokens with 15-minute access JWT and 30-day hashed rotating refresh tokens.
+   - Device revocation: Revoking a session or changing a password invalidates all device refresh tokens immediately.
+
+---
+
+## 6. How to Run, Test & Deploy
+
+```bash
+# 1. Install workspace dependencies
+npm install
+
+# 2. Configure environment variables
+cp .env.example .env          # AUTH_SECRET is required; DATABASE_URL stays empty for local PGlite
+
+# 3. Setup embedded database, run migrations and seed demo data
+npm run db:reset              # Pre-seeds branches, plans, sessions, and demo accounts
+
+# 4. Start local development server (Web Console + REST API)
+npm run dev                   # http://localhost:3000
+
+# 5. Run full test suite (Vitest + PGlite in-memory)
+npm test                      # 47 unit + integration tests
+
+# 6. Typecheck entire repository
+npm run typecheck
+
+# 7. Start Mobile App (Expo)
+cd apps/mobile && npm install && npm start
+```
+
+### Seeded Demo Accounts (Password: `Passw0rd!`)
+
+| Role | Email | Capabilities |
+| --- | --- | --- |
+| **Admin / Owner** | `admin@ironhouse.test` | Full platform control, billing, reports, audit trail, multi-branch |
+| **Manager** | `manager@ironhouse.test` | Branch operations, refunds, member overrides, staff management |
+| **Front Desk** | `frontdesk@ironhouse.test` | Rapid check-in desk, new member sales, attendance search |
+| **Trainer** | `trainer@ironhouse.test` | Class roster attendance, member health notes |
+| **Member** | `member@ironhouse.test` | Mobile app booking, dynamic QR check-in, payment history |
+
+---
+
+## 7. Definition of Done (Quality Checklist)
+
+Every new feature or screen must satisfy:
+- [x] **Dark & White Aesthetic:** Conforms strictly to Obsidian 950 canvas, crisp white typography, `#27272a` borders, and subtle semantic status badges.
+- [x] **5-Second Check-in Ready:** Keyboard navigable, accessible touch targets (≥44px), zero blocking network waterfalls.
+- [x] **Typed Endpoints & Validation:** Zod schema validation at HTTP edge, standardized `{ data }` / `{ error }` response envelopes.
+- [x] **Immutable Financial Ledger:** Financial mutations write an append-only transaction row with audit logging.
+- [x] **Automated Tests:** Comprehensive unit and integration test coverage with zero regressions.

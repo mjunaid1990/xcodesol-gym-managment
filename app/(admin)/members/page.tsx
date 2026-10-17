@@ -71,12 +71,12 @@ export default async function MembersPage({ searchParams }: { searchParams: Prom
           <>
             <Link
               href={`/api/v1/reports/export?type=members${exportQuery ? `&${exportQuery}` : ''}`}
-              className="rounded-xl border border-ink-600 bg-ink-700 px-4 py-3 text-sm"
+              className="rounded-xl border border-ink-700 bg-ink-800 hover:bg-ink-700 hover:text-white px-4 py-3 text-sm text-ink-200 transition-colors"
             >
               Export CSV
             </Link>
             {can(user.role as Role, 'member:write') ? (
-              <a href="#new-member" className="rounded-xl bg-lime-500 px-4 py-3 text-sm font-semibold text-ink-950">
+              <a href="#new-member" className="rounded-xl bg-white px-4 py-3 text-sm font-semibold text-ink-950 hover:bg-zinc-200 transition-colors shadow-sm">
                 New member
               </a>
             ) : null}
