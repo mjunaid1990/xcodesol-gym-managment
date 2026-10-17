@@ -49,7 +49,8 @@ async function createDb(): Promise<Database> {
   const { drizzle } = await import('drizzle-orm/pglite')
   const { dirname, resolve } = await import('node:path')
   const { mkdirSync } = await import('node:fs')
-  const dir = resolve(process.cwd(), process.env.PGLITE_DIR ?? '.data/pglite')
+  // Use turbopackIgnore comment so dynamic path resolution doesn't trace the entire repo into Vercel bundle
+  const dir = resolve(/*turbopackIgnore: true*/ process.cwd(), process.env.PGLITE_DIR ?? '.data/pglite')
   // PGlite creates only its own leaf directory, so the parent has to exist first.
   mkdirSync(dirname(dir), { recursive: true })
   const client = new PGlite(dir)
