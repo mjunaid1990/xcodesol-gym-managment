@@ -8,7 +8,8 @@
   },
   "scripts": {
     "dev": "next dev -p 3000",
-    "build": "next build",
+    "build": "tsx scripts/db.ts deploy && next build",
+    "vercel-build": "tsx scripts/db.ts deploy && next build",
     "start": "next start -p 3000",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
@@ -16,6 +17,7 @@
     "db:generate": "drizzle-kit generate",
     "db:migrate": "tsx scripts/db.ts migrate",
     "db:seed": "tsx scripts/db.ts seed",
+    "db:deploy": "tsx scripts/db.ts deploy",
     "db:reset": "tsx scripts/db.ts reset",
     "db:setup": "tsx scripts/db.ts reset",
     "db:studio": "drizzle-kit studio",

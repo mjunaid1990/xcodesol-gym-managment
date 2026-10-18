@@ -6,6 +6,8 @@ build/
 coverage/
 *.log
 .env
+.env.*
+.env-*
 .env.local
 .env.*.local
 .vercel

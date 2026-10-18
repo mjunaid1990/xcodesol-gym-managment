@@ -108,12 +108,41 @@ export interface SeedSummary {
   invoices: number
 }
 
+/** Checks whether database has already been seeded with initial branches and users. */
+export async function isDatabaseSeeded(db: Database): Promise<boolean> {
+  try {
+    const existingBranch = await db.select({ id: branches.id }).from(branches).limit(1)
+    const existingUser = await db.select({ id: users.id }).from(users).limit(1)
+    return existingBranch.length > 0 && existingUser.length > 0
+  } catch {
+    return false
+  }
+}
+
 /**
  * Demo data for Ironhouse Fitness: three branches, a full staff roster, 64 members on a
  * mix of plans, five weeks of classes with real attendance history and a payment ledger
  * that includes failures and refunds so the dashboards have something honest to show.
  */
-export async function seedDatabase(db: Database): Promise<SeedSummary> {
+export async function seedDatabase(db: Database, options?: { force?: boolean }): Promise<SeedSummary> {
+  if (!options?.force) {
+    const alreadySeeded = await isDatabaseSeeded(db)
+    if (alreadySeeded) {
+      console.log('▸ Database already contains data. Skipping duplicate seed.')
+      return {
+        branches: 0,
+        staff: 0,
+        members: 0,
+        plans: 0,
+        memberships: 0,
+        sessions: 0,
+        bookings: 0,
+        attendance: 0,
+        invoices: 0,
+      }
+    }
+  }
+
   const now = new Date()
   const today = startOfUtcDay(now)
   const passwordHash = await bcrypt.hash('Passw0rd!', 10)
