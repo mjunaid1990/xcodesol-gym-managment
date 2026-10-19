@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native'
+import { ActivityIndicator, Alert, Pressable, RefreshControl, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native'
 import { apiClient } from '../../lib/api'
 import { useSession } from '../../lib/session'
 import { colors, radius, spacing } from '../../lib/theme'
@@ -26,18 +26,31 @@ export default function ProfileScreen() {
   const [emergencyPhone, setEmergencyPhone] = useState('')
   const [healthNotes, setHealthNotes] = useState('')
   const [busy, setBusy] = useState(false)
+  const [refreshing, setRefreshing] = useState(false)
+  const [error, setError] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
 
   const load = useCallback(async () => {
-    const payload = (await apiClient.me()) as unknown as Profile
-    setData(payload)
-    setFirstName(payload.user.firstName)
-    setLastName(payload.user.lastName)
-    setPhone(payload.user.phone ?? '')
-    setEmergencyName(payload.profile?.emergencyContactName ?? '')
-    setEmergencyPhone(payload.profile?.emergencyContactPhone ?? '')
-    setHealthNotes(payload.profile?.healthNotes ?? '')
+    try {
+      const payload = (await apiClient.me()) as unknown as Profile
+      setData(payload)
+      setFirstName(payload.user.firstName ?? '')
+      setLastName(payload.user.lastName ?? '')
+      setPhone(payload.user.phone ?? '')
+      setEmergencyName(payload.profile?.emergencyContactName ?? '')
+      setEmergencyPhone(payload.profile?.emergencyContactPhone ?? '')
+      setHealthNotes(payload.profile?.healthNotes ?? '')
+      setError(null)
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : 'Could not load your profile')
+    }
   }, [])
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true)
+    await load()
+    setRefreshing(false)
+  }, [load])
 
   useEffect(() => {
     void load()
@@ -89,13 +102,25 @@ export default function ProfileScreen() {
   if (!data) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator color={colors.lime} />
+        {error ? (
+          <>
+            <Text style={styles.errorText}>{error}</Text>
+            <Pressable onPress={load} style={styles.retryButton}>
+              <Text style={styles.retryButtonText}>Try again</Text>
+            </Pressable>
+          </>
+        ) : (
+          <ActivityIndicator color={colors.lime} />
+        )}
       </View>
     )
   }
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
+    <ScrollView
+      contentContainerStyle={styles.container}
+      refreshControl={<RefreshControl refreshing={refreshing} tintColor={colors.lime} onRefresh={onRefresh} />}
+    >
       <View style={styles.card}>
         <Text style={styles.email}>{data.user.email}</Text>
         <Text style={styles.role}>Role: {data.user.role}</Text>
@@ -147,7 +172,7 @@ export default function ProfileScreen() {
       </Pressable>
 
       <Text style={styles.sectionTitle}>Privacy</Text>
-      <Pressable style={styles.secondary} onPress={() => Alert.alert('Your data', 'Email help@ironhouse.test and we will send a full export of your account data within 30 days, as required by GDPR.')}>
+      <Pressable style={styles.secondary} onPress={() => Alert.alert('Data export request', 'Please contact the front desk or email gym support to receive a full export of your personal account data.')}>
         <Text style={styles.secondaryText}>Request a data export</Text>
       </Pressable>
       <Pressable style={[styles.secondary, styles.danger]} onPress={eraseAccount}>
@@ -164,8 +189,8 @@ export default function ProfileScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { padding: spacing.lg, gap: spacing.sm, paddingBottom: 64 },
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.ink950 },
+  container: { padding: spacing.lg, gap: spacing.sm, paddingBottom: 64, backgroundColor: colors.ink950 },
+  center: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.ink950, gap: spacing.md, padding: spacing.lg },
   card: { backgroundColor: colors.ink900, borderRadius: radius.md, padding: spacing.md, gap: 4 },
   email: { color: colors.ink100, fontSize: 15, fontWeight: '600' },
   role: { color: colors.ink400, fontSize: 12 },
@@ -196,4 +221,7 @@ const styles = StyleSheet.create({
   signOut: { marginTop: spacing.xl, alignItems: 'center' },
   signOutText: { color: colors.ink400, fontSize: 13 },
   footer: { color: colors.ink400, fontSize: 11, marginTop: spacing.lg, textAlign: 'center' },
+  errorText: { color: colors.rose, fontSize: 13, textAlign: 'center' },
+  retryButton: { backgroundColor: colors.ink800, borderColor: colors.ink700, borderWidth: 1, paddingVertical: 8, paddingHorizontal: spacing.lg, borderRadius: radius.sm },
+  retryButtonText: { color: colors.white, fontSize: 13, fontWeight: '600' },
 })

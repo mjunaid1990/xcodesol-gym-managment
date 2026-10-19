@@ -171,8 +171,7 @@ export default function LoginScreen() {
         </View>
 
         <Text style={styles.hint}>
-          Demo member: member@ironhouse.test · password Passw0rd!{'\n'}
-          Trainers and staff sign in with the same form.
+          Members, trainers, and staff sign in with their registered account.
         </Text>
       </ScrollView>
     </KeyboardAvoidingView>

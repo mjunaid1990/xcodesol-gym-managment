@@ -3,8 +3,10 @@ import * as SecureStore from 'expo-secure-store'
 const ACCESS_KEY = 'ih_access_token'
 const REFRESH_KEY = 'ih_refresh_token'
 
-/** Set EXPO_PUBLIC_API_URL to your deployed Vercel URL (no trailing slash). */
-export const API_BASE = (process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:3000').replace(/\/$/, '')
+/** Set EXPO_PUBLIC_API_URL to your deployed Vercel URL (no trailing slash). Defaults to live production Vercel endpoint. */
+export const API_BASE = (
+  process.env.EXPO_PUBLIC_API_URL || 'https://xcodesol-gym-managment.vercel.app'
+).replace(/\/$/, '')
 
 export interface SessionUser {
   id: string

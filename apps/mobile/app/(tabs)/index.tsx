@@ -1,11 +1,13 @@
 import { useCallback, useEffect, useState } from 'react'
 import { ActivityIndicator, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native'
+import { useRouter } from 'expo-router'
 import QRCode from 'react-native-qrcode-svg'
 import { apiClient, type HomePayload } from '../../lib/api'
 import { useSession } from '../../lib/session'
 import { colors, formatDateTime, radius, spacing, statusColor } from '../../lib/theme'
 
 export default function HomeScreen() {
+  const router = useRouter()
   const { user } = useSession()
   const [home, setHome] = useState<HomePayload | null>(null)
   const [pass, setPass] = useState<{ token: string; expiresAt: string } | null>(null)
@@ -64,8 +66,16 @@ export default function HomeScreen() {
   if (!home) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator color={colors.lime} />
-        {error ? <Text style={styles.error}>{error}</Text> : null}
+        {error ? (
+          <>
+            <Text style={styles.error}>{error}</Text>
+            <Pressable onPress={() => { void load(); void issuePass() }} style={styles.secondaryButton}>
+              <Text style={styles.secondaryText}>Try again</Text>
+            </Pressable>
+          </>
+        ) : (
+          <ActivityIndicator color={colors.lime} />
+        )}
       </View>
     )
   }
@@ -135,7 +145,12 @@ export default function HomeScreen() {
 
       <Text style={styles.sectionTitle}>Next classes</Text>
       {home.upcoming.length === 0 ? (
-        <Text style={styles.empty}>Nothing booked. Head to the Classes tab to grab a spot.</Text>
+        <View style={styles.emptyCard}>
+          <Text style={styles.empty}>Nothing booked yet. Explore the class timetable to reserve your spot.</Text>
+          <Pressable onPress={() => router.push('/classes')} style={styles.browseButton}>
+            <Text style={styles.browseButtonText}>View class schedule →</Text>
+          </Pressable>
+        </View>
       ) : (
         home.upcoming.map((booking) => (
           <View key={booking.bookingId} style={styles.listItem}>
@@ -219,7 +234,10 @@ const styles = StyleSheet.create({
   itemStatus: { fontSize: 11, marginTop: 4, fontWeight: '600' },
   smallButton: { borderColor: colors.ink700, backgroundColor: colors.ink800, borderWidth: 1, borderRadius: radius.sm, paddingVertical: 8, paddingHorizontal: spacing.md },
   smallButtonText: { color: colors.ink200, fontSize: 12 },
-  empty: { color: colors.ink400, fontSize: 13 },
+  empty: { color: colors.ink400, fontSize: 13, lineHeight: 18 },
+  emptyCard: { backgroundColor: colors.ink900, borderWidth: 1, borderColor: colors.ink700, borderRadius: radius.md, padding: spacing.lg, gap: spacing.md },
+  browseButton: { alignSelf: 'flex-start', backgroundColor: colors.lime, paddingVertical: 8, paddingHorizontal: spacing.md, borderRadius: radius.sm },
+  browseButtonText: { color: colors.ink950, fontWeight: '700', fontSize: 13 },
   statsRow: { flexDirection: 'row', gap: spacing.md, marginTop: spacing.sm },
   stat: { flex: 1, backgroundColor: colors.ink900, borderWidth: 1, borderColor: colors.ink700, borderRadius: radius.md, padding: spacing.md, alignItems: 'center' },
   statValue: { color: colors.white, fontSize: 22, fontWeight: '700' },

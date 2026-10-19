@@ -27,7 +27,14 @@ export default function TabsLayout() {
         options={{ title: 'My gym', tabBarIcon: icon('🏠') }}
       />
       <Tabs.Screen name="classes" options={{ title: 'Classes', tabBarIcon: icon('📅') }} />
-      {isTrainer ? <Tabs.Screen name="trainer" options={{ title: 'Teaching', tabBarIcon: icon('🎯') }} /> : null}
+      <Tabs.Screen
+        name="trainer"
+        options={{
+          title: 'Teaching',
+          tabBarIcon: icon('🎯'),
+          href: isTrainer ? '/trainer' : null,
+        }}
+      />
       <Tabs.Screen name="history" options={{ title: 'History', tabBarIcon: icon('📈') }} />
       <Tabs.Screen name="profile" options={{ title: 'Profile', tabBarIcon: icon('👤') }} />
     </Tabs>

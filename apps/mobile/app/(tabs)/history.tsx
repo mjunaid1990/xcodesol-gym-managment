@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from 'react-native'
+import { ActivityIndicator, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native'
 import { apiClient } from '../../lib/api'
 import { colors, formatDateTime, formatMoney, radius, spacing, statusColor } from '../../lib/theme'
 
@@ -10,16 +10,27 @@ export default function HistoryScreen() {
   const [visits, setVisits] = useState<Awaited<ReturnType<typeof apiClient.visits>>['rows']>([])
   const [payments, setPayments] = useState<Awaited<ReturnType<typeof apiClient.payments>> | null>(null)
   const [loading, setLoading] = useState(true)
+  const [refreshing, setRefreshing] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   const load = useCallback(async () => {
     try {
       const [visitData, paymentData] = await Promise.all([apiClient.visits(), apiClient.payments()])
-      setVisits(visitData.rows)
+      setVisits(visitData.rows ?? [])
       setPayments(paymentData)
+      setError(null)
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : 'Could not load your history')
     } finally {
       setLoading(false)
     }
   }, [])
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true)
+    await load()
+    setRefreshing(false)
+  }, [load])
 
   useEffect(() => {
     void load()
@@ -34,7 +45,19 @@ export default function HistoryScreen() {
   }
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
+    <ScrollView
+      contentContainerStyle={styles.container}
+      refreshControl={<RefreshControl refreshing={refreshing} tintColor={colors.lime} onRefresh={onRefresh} />}
+    >
+      {error ? (
+        <View style={styles.errorBox}>
+          <Text style={styles.errorText}>{error}</Text>
+          <Pressable onPress={load} style={styles.retryButton}>
+            <Text style={styles.retryButtonText}>Try again</Text>
+          </Pressable>
+        </View>
+      ) : null}
+
       <View style={styles.tabs}>
         {(['visits', 'payments'] as Tab[]).map((option) => (
           <Text
@@ -122,7 +145,7 @@ export default function HistoryScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { padding: spacing.lg, gap: spacing.sm, paddingBottom: 48 },
+  container: { padding: spacing.lg, gap: spacing.sm, paddingBottom: 48, backgroundColor: colors.ink950 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.ink950 },
   tabs: { flexDirection: 'row', gap: spacing.sm, marginBottom: spacing.sm },
   tab: {
@@ -154,4 +177,8 @@ const styles = StyleSheet.create({
   totalValue: { color: colors.ink100, fontSize: 16, fontWeight: '700', marginTop: 2 },
   sectionTitle: { color: colors.ink100, fontSize: 15, fontWeight: '700', marginTop: spacing.lg },
   empty: { color: colors.ink400, fontSize: 13, marginTop: spacing.md },
+  errorBox: { backgroundColor: colors.ink900, borderWidth: 1, borderColor: colors.rose, borderRadius: radius.md, padding: spacing.md, gap: spacing.sm, marginBottom: spacing.sm },
+  errorText: { color: colors.rose, fontSize: 13 },
+  retryButton: { alignSelf: 'flex-start', backgroundColor: colors.ink800, borderColor: colors.ink700, borderWidth: 1, paddingVertical: 6, paddingHorizontal: spacing.md, borderRadius: radius.sm },
+  retryButtonText: { color: colors.white, fontSize: 12, fontWeight: '600' },
 })

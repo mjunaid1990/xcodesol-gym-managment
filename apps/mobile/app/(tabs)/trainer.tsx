@@ -17,17 +17,9 @@ export default function TrainerScreen() {
   const [sessions, setSessions] = useState<SessionOption[]>([])
   const [rosters, setRosters] = useState<Record<string, RosterMember[]>>({})
   const [loading, setLoading] = useState(true)
+  const [refreshing, setRefreshing] = useState(false)
+  const [error, setError] = useState<string | null>(null)
   const [expanded, setExpanded] = useState<string | null>(null)
-
-  const load = useCallback(async () => {
-    try {
-      const day = await apiClient.trainerDay()
-      setSessions(day.sessions)
-      if (day.sessions[0]) await loadRoster(day.sessions[0].id)
-    } finally {
-      setLoading(false)
-    }
-  }, [])
 
   const loadRoster = useCallback(async (sessionId: string) => {
     try {
@@ -44,6 +36,25 @@ export default function TrainerScreen() {
       // Offline: the class list still renders.
     }
   }, [])
+
+  const load = useCallback(async () => {
+    try {
+      const day = await apiClient.trainerDay()
+      setSessions(day.sessions ?? [])
+      setError(null)
+      if (day.sessions && day.sessions[0]) await loadRoster(day.sessions[0].id)
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : 'Could not load your classes')
+    } finally {
+      setLoading(false)
+    }
+  }, [loadRoster])
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true)
+    await load()
+    setRefreshing(false)
+  }, [load])
 
   useEffect(() => {
     void load()
@@ -68,9 +79,26 @@ export default function TrainerScreen() {
   }
 
   return (
-    <ScrollView contentContainerStyle={styles.container} refreshControl={<RefreshControl refreshing={false} tintColor={colors.lime} onRefresh={load} />}>
+    <ScrollView
+      contentContainerStyle={styles.container}
+      refreshControl={<RefreshControl refreshing={refreshing} tintColor={colors.lime} onRefresh={onRefresh} />}
+    >
       <Text style={styles.heading}>Today&apos;s classes</Text>
-      {sessions.length === 0 ? <Text style={styles.empty}>No classes assigned to you today.</Text> : null}
+      {error ? (
+        <View style={styles.errorBox}>
+          <Text style={styles.errorText}>{error}</Text>
+          <Pressable onPress={load} style={styles.retryButton}>
+            <Text style={styles.retryButtonText}>Try again</Text>
+          </Pressable>
+        </View>
+      ) : null}
+
+      {sessions.length === 0 && !error ? (
+        <View style={styles.emptyCard}>
+          <Text style={styles.emptyTitle}>No classes today</Text>
+          <Text style={styles.empty}>You have no teaching sessions assigned for today. Pull down to refresh.</Text>
+        </View>
+      ) : null}
 
       {sessions.map((session) => {
         const roster = rosters[session.id] ?? []
@@ -142,4 +170,10 @@ const styles = StyleSheet.create({
   checkText: { color: colors.ink950, fontWeight: '700', fontSize: 12 },
   checked: { color: colors.emerald, fontSize: 12, fontWeight: '700' },
   empty: { color: colors.ink400, fontSize: 13 },
+  errorBox: { backgroundColor: colors.ink900, borderWidth: 1, borderColor: colors.rose, borderRadius: radius.md, padding: spacing.md, gap: spacing.sm },
+  errorText: { color: colors.rose, fontSize: 13 },
+  retryButton: { alignSelf: 'flex-start', backgroundColor: colors.ink800, borderColor: colors.ink700, borderWidth: 1, paddingVertical: 6, paddingHorizontal: spacing.md, borderRadius: radius.sm },
+  retryButtonText: { color: colors.white, fontSize: 12, fontWeight: '600' },
+  emptyCard: { backgroundColor: colors.ink900, borderWidth: 1, borderColor: colors.ink700, borderRadius: radius.md, padding: spacing.xl, alignItems: 'center', gap: spacing.sm, marginVertical: spacing.md },
+  emptyTitle: { color: colors.ink100, fontSize: 16, fontWeight: '700' },
 })

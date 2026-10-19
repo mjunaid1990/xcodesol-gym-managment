@@ -6,6 +6,7 @@ import { colors, formatDay, formatTime, radius, spacing, statusColor } from '../
 export default function ClassesScreen() {
   const [sessions, setSessions] = useState<SessionOption[]>([])
   const [loading, setLoading] = useState(true)
+  const [refreshing, setRefreshing] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [busyId, setBusyId] = useState<string | null>(null)
 
@@ -19,6 +20,12 @@ export default function ClassesScreen() {
       setLoading(false)
     }
   }, [])
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true)
+    await load()
+    setRefreshing(false)
+  }, [load])
 
   useEffect(() => {
     void load()
@@ -76,9 +83,25 @@ export default function ClassesScreen() {
   return (
     <ScrollView
       contentContainerStyle={styles.container}
-      refreshControl={<RefreshControl refreshing={false} tintColor={colors.lime} onRefresh={load} />}
+      refreshControl={<RefreshControl refreshing={refreshing} tintColor={colors.lime} onRefresh={onRefresh} />}
     >
-      {error ? <Text style={styles.error}>{error}</Text> : null}
+      {error ? (
+        <View style={styles.errorBox}>
+          <Text style={styles.error}>{error}</Text>
+          <Pressable onPress={load} style={styles.retryButton}>
+            <Text style={styles.retryText}>Try again</Text>
+          </Pressable>
+        </View>
+      ) : null}
+
+      {grouped.length === 0 && !error ? (
+        <View style={styles.emptyCard}>
+          <Text style={styles.emptyTitle}>No classes scheduled</Text>
+          <Text style={styles.empty}>
+            There are currently no upcoming classes on the schedule. Please check back soon or pull down to refresh.
+          </Text>
+        </View>
+      ) : null}
 
       {grouped.map(([day, daySessions]) => (
         <View key={day} style={styles.dayBlock}>
@@ -159,5 +182,11 @@ const styles = StyleSheet.create({
   cancelText: { color: colors.ink200, fontSize: 12 },
   disabled: { opacity: 0.6 },
   footnote: { color: colors.ink400, fontSize: 11, lineHeight: 16 },
+  errorBox: { backgroundColor: colors.ink900, borderWidth: 1, borderColor: colors.rose, borderRadius: radius.md, padding: spacing.md, gap: spacing.sm },
   error: { color: colors.rose, fontSize: 13 },
+  retryButton: { alignSelf: 'flex-start', backgroundColor: colors.ink800, borderColor: colors.ink700, borderWidth: 1, paddingVertical: 6, paddingHorizontal: spacing.md, borderRadius: radius.sm },
+  retryText: { color: colors.white, fontSize: 12, fontWeight: '600' },
+  emptyCard: { backgroundColor: colors.ink900, borderWidth: 1, borderColor: colors.ink700, borderRadius: radius.md, padding: spacing.xl, alignItems: 'center', gap: spacing.sm, marginVertical: spacing.md },
+  emptyTitle: { color: colors.ink100, fontSize: 16, fontWeight: '700' },
+  empty: { color: colors.ink400, fontSize: 13, textAlign: 'center', lineHeight: 18 },
 })
