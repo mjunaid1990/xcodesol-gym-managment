@@ -1,72 +1,76 @@
 import Link from 'next/link'
 import { requireStaffUser } from '@/lib/auth/current-user'
-import { can, ROLE_LABELS, type Permission, type Role } from '@/lib/constants'
+import { ROLE_LABELS, type Role } from '@/lib/constants'
+import { AdminNav } from './AdminNav'
 import { LogoutButton } from './LogoutButton'
-
-const NAV: { href: string; label: string; permission?: Permission; group: string }[] = [
-  { href: '/dashboard', label: 'Overview', group: 'Run the gym' },
-  { href: '/checkin', label: 'Check-in', permission: 'attendance:write', group: 'Run the gym' },
-  { href: '/classes', label: 'Timetable', permission: 'class:read', group: 'Run the gym' },
-  { href: '/members', label: 'Members', permission: 'member:read', group: 'Run the gym' },
-  { href: '/payments', label: 'Payments', permission: 'payment:read', group: 'Money' },
-  { href: '/plans', label: 'Plans & pricing', permission: 'plan:read', group: 'Money' },
-  { href: '/reports', label: 'Reports', permission: 'report:read', group: 'Insight' },
-  { href: '/staff', label: 'Staff & payroll', permission: 'staff:read', group: 'Insight' },
-  { href: '/announcements', label: 'Announcements', permission: 'announcement:read', group: 'Insight' },
-  { href: '/audit', label: 'Audit log', permission: 'audit:read', group: 'Settings' },
-  { href: '/settings', label: 'Settings', permission: 'setting:read', group: 'Settings' },
-]
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const user = await requireStaffUser()
   const role = user.role as Role
-  const visible = NAV.filter((item) => !item.permission || can(role, item.permission))
-  const groups = Array.from(new Set(visible.map((item) => item.group)))
+  const roleLabel = ROLE_LABELS[role] ?? role
+  const initials = `${user.firstName?.[0] ?? ''}${user.lastName?.[0] ?? ''}`.toUpperCase() || 'IH'
 
   return (
-    <div className="flex min-h-screen flex-col lg:flex-row">
-      <aside className="border-b border-ink-800 bg-ink-900 lg:w-64 lg:shrink-0 lg:border-b-0 lg:border-r">
-        <div className="flex items-center justify-between gap-4 px-5 py-4 lg:block">
-          <Link href="/dashboard" className="flex items-center gap-2.5">
-            <span className="grid h-8 w-8 place-items-center rounded-lg bg-white text-xs font-bold text-ink-950 shadow-sm">IH</span>
-            <span className="text-sm font-semibold tracking-tight text-white">Ironhouse Gym</span>
-          </Link>
-          <div className="lg:mt-4 lg:border-t lg:border-ink-800 lg:pt-4">
-            <p className="text-sm font-medium text-ink-100">
-              {user.firstName} {user.lastName}
-            </p>
-            <p className="text-xs text-ink-400">{ROLE_LABELS[role] ?? role}</p>
+    <div className="flex min-h-screen flex-col lg:flex-row bg-[#08080a] text-ink-100 selection:bg-white selection:text-ink-950">
+      {/* Sidebar */}
+      <aside className="border-b border-white/[0.08] bg-[#0c0c0f]/90 backdrop-blur-xl lg:w-64 lg:shrink-0 lg:border-b-0 lg:border-r flex flex-col justify-between">
+        <div>
+          {/* Logo Brand Header */}
+          <div className="flex items-center justify-between px-5 py-4 border-b border-white/[0.06]">
+            <Link href="/dashboard" className="flex items-center gap-3 group">
+              <div className="relative flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-white via-zinc-200 to-zinc-400 text-ink-950 font-black text-xs shadow-[0_0_15px_rgba(255,255,255,0.2)] transition-transform group-hover:scale-105">
+                IH
+                <span className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-emerald-500 ring-2 ring-[#0c0c0f]" />
+              </div>
+              <div className="flex flex-col">
+                <span className="text-sm font-semibold tracking-tight text-white group-hover:text-zinc-200 transition-colors">
+                  Ironhouse Gym
+                </span>
+                <span className="text-[10px] font-medium tracking-wider text-ink-400 uppercase">
+                  Management Pro
+                </span>
+              </div>
+            </Link>
           </div>
+
+          {/* User Profile Card */}
+          <div className="mx-3.5 my-4 p-3 rounded-2xl bg-white/[0.03] border border-white/[0.06] flex items-center gap-3">
+            <div className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-tr from-zinc-800 to-zinc-700 border border-white/10 text-white font-semibold text-xs shadow-inner">
+              {initials}
+              <span className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full bg-emerald-500 ring-2 ring-[#18181c]" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-xs font-semibold text-white">
+                {user.firstName} {user.lastName}
+              </p>
+              <div className="flex items-center gap-1.5 mt-0.5">
+                <span className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-400" />
+                <span className="truncate text-[11px] font-medium text-ink-300">
+                  {roleLabel}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Navigation Links */}
+          <AdminNav role={role} />
         </div>
 
-        <nav aria-label="Main" className="px-3 pb-4">
-          {groups.map((group) => (
-            <div key={group} className="mt-3">
-              <p className="px-2 text-[11px] font-medium uppercase tracking-wider text-ink-400">{group}</p>
-              <ul className="mt-1 flex flex-wrap gap-1 lg:flex-col">
-                {visible
-                  .filter((item) => item.group === group)
-                  .map((item) => (
-                    <li key={item.href}>
-                      <Link
-                        href={item.href}
-                        className="block rounded-lg px-3 py-2 text-sm text-ink-200 transition-colors hover:bg-ink-800 hover:text-ink-100"
-                      >
-                        {item.label}
-                      </Link>
-                    </li>
-                  ))}
-              </ul>
-            </div>
-          ))}
-          <div className="mt-6 px-2">
-            <LogoutButton />
-          </div>
-        </nav>
+        {/* Footer Area with Sign Out */}
+        <div className="p-3.5 border-t border-white/[0.06]">
+          <LogoutButton />
+        </div>
       </aside>
 
-      <main id="main" className="min-w-0 flex-1 px-5 py-6 lg:px-8 lg:py-8">
-        {children}
+      {/* Main Content Viewport with Ambient Lighting */}
+      <main id="main" className="relative min-w-0 flex-1 px-5 py-6 sm:px-8 sm:py-8 overflow-y-auto">
+        {/* Subtle Ambient Mesh Glow in top right */}
+        <div className="pointer-events-none absolute -top-40 right-0 h-96 w-96 rounded-full bg-white/[0.02] blur-3xl" />
+        <div className="pointer-events-none absolute top-40 left-1/3 h-64 w-64 rounded-full bg-sky-500/[0.015] blur-3xl" />
+
+        <div className="relative z-10 max-w-7xl mx-auto">
+          {children}
+        </div>
       </main>
     </div>
   )

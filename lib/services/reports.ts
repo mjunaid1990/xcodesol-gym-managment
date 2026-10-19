@@ -89,7 +89,7 @@ export async function overviewMetrics(db: Database, range: ReportRange): Promise
     .select({
       active: sql<number>`count(*) filter (where ${memberships.status} = 'ACTIVE')::int`,
       frozen: sql<number>`count(*) filter (where ${memberships.status} = 'FROZEN')::int`,
-      cancelled: sql<number>`count(*) filter (where ${memberships.status} = 'CANCELLED' and ${memberships.cancelledAt} between ${range.from} and ${range.to})::int`,
+      cancelled: sql<number>`count(*) filter (where ${memberships.status} = 'CANCELLED' and ${memberships.cancelledAt} >= ${range.from} and ${memberships.cancelledAt} <= ${range.to})::int`,
     })
     .from(memberships)
     .where(branchFilter ? eq(memberships.branchId, branchFilter) : undefined)
@@ -124,7 +124,7 @@ export async function overviewMetrics(db: Database, range: ReportRange): Promise
     .select({
       sessions: sql<number>`count(*)::int`,
       capacity: sql<number>`coalesce(sum(${classSessions.capacity}), 0)::int`,
-      seats: sql<number>`coalesce((select count(*)::int from bookings b join class_sessions s on s.id = b.session_id where s.starts_at between ${range.from} and ${range.to} and s.status <> 'CANCELLED' and b.status in ('BOOKED','ATTENDED') ${branchFilter ? sql`and s.branch_id = ${branchFilter}` : sql``}), 0)`,
+      seats: sql<number>`coalesce((select count(*)::int from bookings b join class_sessions s on s.id = b.session_id where s.starts_at >= ${range.from} and s.starts_at <= ${range.to} and s.status <> 'CANCELLED' and b.status in ('BOOKED','ATTENDED') ${branchFilter ? sql`and s.branch_id = ${branchFilter}` : sql``}), 0)`,
     })
     .from(classSessions)
     .where(
@@ -358,9 +358,9 @@ export async function trainerPerformance(db: Database, range: ReportRange): Prom
       sessions: sql<number>`count(distinct ${classSessions.id})::int`,
       minutes: sql<number>`coalesce(sum(extract(epoch from (${classSessions.endsAt} - ${classSessions.startsAt})) / 60), 0)::int`,
       capacity: sql<number>`coalesce(sum(${classSessions.capacity}), 0)::int`,
-      attendees: sql<number>`coalesce((select count(*)::int from bookings b join class_sessions s2 on s2.id = b.session_id where s2.trainer_id = users.id and b.status = 'ATTENDED' and s2.starts_at between ${range.from} and ${range.to}), 0)`,
-      noShows: sql<number>`coalesce((select count(*)::int from bookings b join class_sessions s2 on s2.id = b.session_id where s2.trainer_id = users.id and b.status = 'NO_SHOW' and s2.starts_at between ${range.from} and ${range.to}), 0)`,
-      booked: sql<number>`coalesce((select count(*)::int from bookings b join class_sessions s2 on s2.id = b.session_id where s2.trainer_id = users.id and b.status in ('BOOKED','ATTENDED') and s2.starts_at between ${range.from} and ${range.to}), 0)`,
+      attendees: sql<number>`coalesce((select count(*)::int from bookings b join class_sessions s2 on s2.id = b.session_id where s2.trainer_id = users.id and b.status = 'ATTENDED' and s2.starts_at >= ${range.from} and s2.starts_at <= ${range.to}), 0)`,
+      noShows: sql<number>`coalesce((select count(*)::int from bookings b join class_sessions s2 on s2.id = b.session_id where s2.trainer_id = users.id and b.status = 'NO_SHOW' and s2.starts_at >= ${range.from} and s2.starts_at <= ${range.to}), 0)`,
+      booked: sql<number>`coalesce((select count(*)::int from bookings b join class_sessions s2 on s2.id = b.session_id where s2.trainer_id = users.id and b.status in ('BOOKED','ATTENDED') and s2.starts_at >= ${range.from} and s2.starts_at <= ${range.to}), 0)`,
     })
     .from(users)
     .leftJoin(
@@ -474,15 +474,24 @@ export async function membershipMix(db: Database, range: ReportRange): Promise<M
       planName: plans.name,
       planType: plans.type,
       active: sql<number>`(select count(*)::int from memberships m where m.plan_id = plans.id and m.status in ('ACTIVE','FROZEN'))`,
-      revenueCents: sql<number>`coalesce((select sum(p.amount_cents)::int from payments p join memberships m on m.id = p.membership_id where m.plan_id = plans.id and p.status in ('SUCCEEDED','PARTIALLY_REFUNDED','REFUNDED') and p.paid_at between ${range.from} and ${range.to}), 0)`,
+      revenueCents: sql<number>`coalesce((select sum(p.amount_cents)::int from payments p join memberships m on m.id = p.membership_id where m.plan_id = plans.id and p.status in ('SUCCEEDED','PARTIALLY_REFUNDED','REFUNDED') and p.paid_at >= ${range.from} and p.paid_at <= ${range.to}), 0)`,
     })
     .from(plans)
     .orderBy(desc(sql`(select count(*) from memberships m where m.plan_id = plans.id and m.status in ('ACTIVE','FROZEN'))`))
 }
 
-/** Everything the dashboard home renders, in one call. */
+/** Everything the dashboard home renders, in one call with resilient fault tolerance. */
 export async function dashboardPayload(db: Database, range: ReportRange) {
-  const [metrics, revenue, signups, visits, utilisation, trainers, outstanding, mix] = await Promise.all([
+  const [
+    metricsRes,
+    revenueRes,
+    signupsRes,
+    visitsRes,
+    utilisationRes,
+    trainersRes,
+    outstandingRes,
+    mixRes,
+  ] = await Promise.allSettled([
     overviewMetrics(db, range),
     revenueSeries(db, range),
     signupSeries(db, range),
@@ -493,7 +502,47 @@ export async function dashboardPayload(db: Database, range: ReportRange) {
     membershipMix(db, range),
   ])
 
-  return { metrics, revenue, signups, visits, utilisation, trainers, outstanding, mix }
+  if (metricsRes.status === 'rejected') console.error('overviewMetrics failed:', metricsRes.reason)
+  if (revenueRes.status === 'rejected') console.error('revenueSeries failed:', revenueRes.reason)
+  if (signupsRes.status === 'rejected') console.error('signupSeries failed:', signupsRes.reason)
+  if (visitsRes.status === 'rejected') console.error('attendanceSeries failed:', visitsRes.reason)
+  if (utilisationRes.status === 'rejected') console.error('classUtilization failed:', utilisationRes.reason)
+  if (trainersRes.status === 'rejected') console.error('trainerPerformance failed:', trainersRes.reason)
+  if (outstandingRes.status === 'rejected') console.error('outstandingInvoices failed:', outstandingRes.reason)
+  if (mixRes.status === 'rejected') console.error('membershipMix failed:', mixRes.reason)
+
+  const defaultMetrics: OverviewMetrics = {
+    revenueCents: 0,
+    refundedCents: 0,
+    netRevenueCents: 0,
+    paymentsCount: 0,
+    failedPayments: 0,
+    newMembers: 0,
+    activeMembers: 0,
+    frozenMembers: 0,
+    expiringIn7Days: 0,
+    cancelledInRange: 0,
+    attendanceTotal: 0,
+    uniqueVisitors: 0,
+    sessionsHeld: 0,
+    seatsBooked: 0,
+    fillRatePercent: 0,
+    outstandingCents: 0,
+    outstandingInvoices: 0,
+    averageRevenuePerMemberCents: 0,
+    churnRatePercent: 0,
+  }
+
+  return {
+    metrics: metricsRes.status === 'fulfilled' ? metricsRes.value : defaultMetrics,
+    revenue: revenueRes.status === 'fulfilled' ? revenueRes.value : [],
+    signups: signupsRes.status === 'fulfilled' ? signupsRes.value : [],
+    visits: visitsRes.status === 'fulfilled' ? visitsRes.value : [],
+    utilisation: utilisationRes.status === 'fulfilled' ? utilisationRes.value : [],
+    trainers: trainersRes.status === 'fulfilled' ? trainersRes.value : [],
+    outstanding: outstandingRes.status === 'fulfilled' ? outstandingRes.value : [],
+    mix: mixRes.status === 'fulfilled' ? mixRes.value : [],
+  }
 }
 
 /* -------------------------------------------------------------------------- */

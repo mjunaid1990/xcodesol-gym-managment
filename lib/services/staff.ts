@@ -169,7 +169,7 @@ export async function payrollHours(
       hourlyRateCents: users.hourlyRateCents,
       sessions: sql<number>`count(${classSessions.id})::int`,
       minutes: sql<number>`coalesce(sum(extract(epoch from (${classSessions.endsAt} - ${classSessions.startsAt})) / 60), 0)::int`,
-      attendees: sql<number>`coalesce((select count(*)::int from bookings b join class_sessions s2 on s2.id = b.session_id where s2.trainer_id = users.id and b.status = 'ATTENDED' and s2.starts_at between ${input.from} and ${input.to}), 0)`,
+      attendees: sql<number>`coalesce((select count(*)::int from bookings b join class_sessions s2 on s2.id = b.session_id where s2.trainer_id = users.id and b.status = 'ATTENDED' and s2.starts_at >= ${input.from} and s2.starts_at <= ${input.to}), 0)`,
     })
     .from(users)
     .leftJoin(branches, eq(branches.id, users.branchId))
