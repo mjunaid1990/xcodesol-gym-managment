@@ -145,10 +145,10 @@ export default async function MembersPage({ searchParams }: { searchParams: Prom
 
       <div className="mt-4 card overflow-hidden">
         {rows.length === 0 ? (
-          <div className="p-6">
+          <div className="p-8">
             <EmptyState
-              title="No members match those filters"
-              hint="Try clearing the filters, or search for a partial name."
+              title={result.total === 0 ? 'No members registered yet' : 'No members match those filters'}
+              hint={result.total === 0 ? 'Register your first gym member using the New Member form below.' : 'Try clearing filters or search terms.'}
             />
           </div>
         ) : (

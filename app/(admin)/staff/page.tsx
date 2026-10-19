@@ -8,6 +8,7 @@ import { ActionButton, ActionForm } from '@/components/ActionForm'
 import {
   Badge,
   Card,
+  EmptyState,
   Field,
   PageHeader,
   StatCard,
@@ -112,19 +113,25 @@ export default async function StaffPage({ searchParams }: { searchParams: Promis
       </Card>
 
       <Card className="mt-4" title="Payroll hours (last 30 days)" description="Export and hand to your payroll provider" padded={false}>
-        <Table head={['Name', 'Role', 'Classes', 'Hours', 'Rate', 'Gross', 'Attendees']}>
-          {payroll.map((row) => (
-            <tr key={row.staffId}>
-              <td className="px-4 py-3 font-medium">{row.name}</td>
-              <td className="px-4 py-3 text-ink-300">{ROLE_LABELS[row.role as Role] ?? row.role}</td>
-              <td className="px-4 py-3 stat-value">{row.sessions}</td>
-              <td className="px-4 py-3 stat-value">{row.taughtHours}</td>
-              <td className="px-4 py-3">{row.hourlyRateCents ? money(row.hourlyRateCents) : '—'}</td>
-              <td className="px-4 py-3 stat-value">{row.grossPayCents ? money(row.grossPayCents) : '—'}</td>
-              <td className="px-4 py-3 stat-value">{row.attendees}</td>
-            </tr>
-          ))}
-        </Table>
+        {payroll.length === 0 ? (
+          <div className="p-6">
+            <EmptyState title="No payroll records yet" hint="Trainer hours will automatically compute as scheduled class sessions take place." />
+          </div>
+        ) : (
+          <Table head={['Name', 'Role', 'Classes', 'Hours', 'Rate', 'Gross', 'Attendees']}>
+            {payroll.map((row) => (
+              <tr key={row.staffId}>
+                <td className="px-4 py-3 font-medium">{row.name}</td>
+                <td className="px-4 py-3 text-ink-300">{ROLE_LABELS[row.role as Role] ?? row.role}</td>
+                <td className="px-4 py-3 stat-value">{row.sessions}</td>
+                <td className="px-4 py-3 stat-value">{row.taughtHours}</td>
+                <td className="px-4 py-3">{row.hourlyRateCents ? money(row.hourlyRateCents) : '—'}</td>
+                <td className="px-4 py-3 stat-value">{row.grossPayCents ? money(row.grossPayCents) : '—'}</td>
+                <td className="px-4 py-3 stat-value">{row.attendees}</td>
+              </tr>
+            ))}
+          </Table>
+        )}
       </Card>
 
       {canWrite ? (

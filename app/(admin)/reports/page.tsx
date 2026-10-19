@@ -178,6 +178,13 @@ export default async function ReportsPage({
                 <td className="px-4 py-3 stat-value">{row.averageFillPercent}%</td>
               </tr>
             ))}
+            {trainers.length === 0 ? (
+              <tr>
+                <td className="px-4 py-4 text-xs text-ink-400 text-center" colSpan={6}>
+                  No trainer performance records available yet.
+                </td>
+              </tr>
+            ) : null}
           </Table>
         </Card>
       </div>
@@ -214,6 +221,13 @@ export default async function ReportsPage({
                 <td className="px-4 py-3">{money(row.revenueCents)}</td>
               </tr>
             ))}
+            {mix.length === 0 ? (
+              <tr>
+                <td className="px-4 py-4 text-xs text-ink-400 text-center" colSpan={3}>
+                  No active membership plans yet.
+                </td>
+              </tr>
+            ) : null}
           </Table>
         </Card>
       </div>

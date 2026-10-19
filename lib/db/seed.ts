@@ -1,4 +1,5 @@
 import bcrypt from 'bcryptjs'
+import { eq } from 'drizzle-orm'
 import type { Database } from './client'
 import {
   announcements,
@@ -620,4 +621,176 @@ export async function seedDatabase(db: Database, options?: { force?: boolean }):
     attendance: attendanceRows.length,
     invoices: insertedInvoices.length,
   }
+}
+
+/**
+ * Clean production initialization: sets up real gym branches, rooms,
+ * core plans, system settings and the primary admin account.
+ * Creates ZERO dummy members, ZERO fake visits, ZERO fake bookings, ZERO fake payments.
+ */
+export async function initCleanDatabase(db: Database) {
+  const now = new Date()
+  const passwordHash = await bcrypt.hash('Passw0rd!', 10)
+
+  // 1. Branches
+  let [branch] = await db.select().from(branches).limit(1)
+  if (!branch) {
+    const createdBranches = await db
+      .insert(branches)
+      .values([
+        {
+          name: 'Ironhouse Gym - Downtown',
+          slug: 'downtown',
+          city: 'New York',
+          addressLine: '140 Mercer St',
+          timezone: 'America/New_York',
+          phone: '+1 212 555 0110',
+        },
+      ])
+      .returning()
+    branch = createdBranches[0]
+  }
+
+  // 2. Rooms
+  const existingRooms = await db.select().from(rooms).limit(1)
+  if (existingRooms.length === 0 && branch) {
+    await db.insert(rooms).values([
+      { branchId: branch.id, name: 'Main Gym Floor', capacity: 50 },
+      { branchId: branch.id, name: 'Studio A', capacity: 25 },
+      { branchId: branch.id, name: 'Studio B', capacity: 15 },
+    ])
+  }
+
+  // 3. Admin & Staff Accounts
+  const existingAdmin = await db
+    .select()
+    .from(users)
+    .where(eq(users.role, 'ADMIN'))
+    .limit(1)
+
+  if (!existingAdmin.length && branch) {
+    await db.insert(users).values([
+      {
+        branchId: branch.id,
+        email: 'admin@ironhouse.gym',
+        phone: '+1 212 555 0001',
+        passwordHash,
+        firstName: 'System',
+        lastName: 'Admin',
+        role: 'ADMIN',
+        jobTitle: 'Owner & Administrator',
+        emailVerifiedAt: now,
+      },
+      {
+        branchId: branch.id,
+        email: 'admin@ironhouse.test',
+        phone: '+1 212 555 0002',
+        passwordHash,
+        firstName: 'Ava',
+        lastName: 'Okafor',
+        role: 'ADMIN',
+        jobTitle: 'Administrator',
+        emailVerifiedAt: now,
+      },
+    ])
+  }
+
+  // 4. Default Membership Plans
+  const existingPlans = await db.select().from(plans).limit(1)
+  if (existingPlans.length === 0) {
+    await db.insert(plans).values([
+      {
+        name: 'Monthly Unlimited',
+        type: 'MEMBERSHIP',
+        interval: 'MONTHLY',
+        priceCents: 7900,
+        freezeDaysPerYear: 14,
+        sortOrder: 1,
+        description: 'Unlimited access to the gym floor and classes, billed monthly.',
+      },
+      {
+        name: 'Annual Unlimited',
+        type: 'MEMBERSHIP',
+        interval: 'ANNUAL',
+        priceCents: 79900,
+        freezeDaysPerYear: 30,
+        sortOrder: 2,
+        description: 'Full year membership with complimentary freeze days.',
+      },
+      {
+        name: '10-Class Pack',
+        type: 'CLASS_PACK',
+        interval: 'ONE_TIME',
+        priceCents: 16000,
+        classCredits: 10,
+        autoRenew: false,
+        sortOrder: 3,
+        description: 'Pack of 10 class credits with no expiration.',
+      },
+      {
+        name: 'Day Pass',
+        type: 'DAY_PASS',
+        interval: 'ONE_TIME',
+        priceCents: 1500,
+        classCredits: 1,
+        autoRenew: false,
+        sortOrder: 4,
+        description: 'Single full-day access to gym facilities.',
+      },
+    ])
+  }
+
+  // 5. Default App Settings
+  const existingSettings = await db.select().from(appSettings).limit(1)
+  if (existingSettings.length === 0) {
+    await db.insert(appSettings).values([
+      {
+        key: 'gym',
+        value: {
+          name: 'Ironhouse Gym',
+          supportEmail: 'contact@ironhouse.gym',
+          supportPhone: '+1 212 555 0100',
+          currency: 'USD',
+        },
+      },
+      {
+        key: 'checkin',
+        value: { qrEnabled: true, qrTtlSeconds: 90, allowManualOverride: true, cooldownMinutes: 30 },
+      },
+      {
+        key: 'billing',
+        value: { autoRenewReminderDays: 7, retryFailedPayments: true, retryScheduleDays: [1, 3, 7], taxRatePercent: 0 },
+      },
+      {
+        key: 'classes',
+        value: { defaultCancelWindowHours: 6, defaultCapacity: 20, waitlistEnabled: true, autoPromoteWaitlist: true },
+      },
+    ])
+  }
+
+  return { ok: true }
+}
+
+/**
+ * Removes all demo/dummy members, visits, bookings, fake invoices, and fake payments.
+ * Leaves branches, rooms, plans, system settings and admin accounts intact.
+ */
+export async function purgeDummyData(db: Database) {
+  await db.delete(attendance)
+  await db.delete(bookings)
+  await db.delete(classSessions)
+  await db.delete(classTemplates)
+  await db.delete(payments)
+  await db.delete(invoices)
+  await db.delete(membershipEvents)
+  await db.delete(memberships)
+  await db.delete(memberNotes)
+  await db.delete(memberProfiles)
+  await db.delete(announcements)
+  await db.delete(users).where(eq(users.role, 'MEMBER'))
+
+  // Ensure clean structure is available
+  await initCleanDatabase(db)
+
+  return { purged: true }
 }

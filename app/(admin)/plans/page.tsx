@@ -7,6 +7,7 @@ import { ActionButton, ActionForm } from '@/components/ActionForm'
 import {
   Badge,
   Card,
+  EmptyState,
   Field,
   PageHeader,
   StatCard,
@@ -46,47 +47,53 @@ export default async function PlansPage() {
       </div>
 
       <Card className="mt-4" title="Plans" padded={false}>
-        <Table head={['Plan', 'Type', 'Billing', 'Price', 'Credits', 'Freeze days', 'Members', '']}>
-          {plans.map((plan) => (
-            <tr key={plan.id} className="hover:bg-ink-800/40">
-              <td className="px-4 py-3">
-                <span className="font-medium">{plan.name}</span>
-                <p className="text-xs text-ink-400">{plan.description ?? '—'}</p>
-              </td>
-              <td className="px-4 py-3 text-ink-300">{plan.type.replace('_', ' ').toLowerCase()}</td>
-              <td className="px-4 py-3 text-ink-300">
-                {plan.interval.replace('_', ' ').toLowerCase()}
-                {plan.autoRenew ? ' · auto-renew' : ''}
-              </td>
-              <td className="px-4 py-3 stat-value">{money(plan.priceCents, plan.currency)}</td>
-              <td className="px-4 py-3">{plan.classCredits ?? 'unlimited'}</td>
-              <td className="px-4 py-3">{plan.freezeDaysPerYear}</td>
-              <td className="px-4 py-3 stat-value">{plan.activeMembers}</td>
-              <td className="px-4 py-3">
-                {canWrite ? (
-                  <span className="flex gap-2">
-                    <ActionButton
-                      endpoint={`/api/v1/plans/${plan.id}`}
-                      method="PATCH"
-                      body={{ isActive: !plan.isActive }}
-                      label={plan.isActive ? 'Hide' : 'Publish'}
-                    />
-                    <ActionButton
-                      endpoint={`/api/v1/plans/${plan.id}`}
-                      method="PATCH"
-                      body={{ priceCents: plan.priceCents + 500 }}
-                      label="+5.00"
-                      title="Quick price bump of 5.00"
-                      confirmMessage={`Raise ${plan.name} to ${money(plan.priceCents + 500)}?`}
-                    />
-                  </span>
-                ) : (
-                  <Badge tone={plan.isActive ? 'positive' : 'neutral'}>{plan.isActive ? 'live' : 'hidden'}</Badge>
-                )}
-              </td>
-            </tr>
-          ))}
-        </Table>
+        {plans.length === 0 ? (
+          <div className="p-8">
+            <EmptyState title="No plans created yet" hint="Create your first membership plan using the form below." />
+          </div>
+        ) : (
+          <Table head={['Plan', 'Type', 'Billing', 'Price', 'Credits', 'Freeze days', 'Members', '']}>
+            {plans.map((plan) => (
+              <tr key={plan.id} className="hover:bg-ink-800/40">
+                <td className="px-4 py-3">
+                  <span className="font-medium">{plan.name}</span>
+                  <p className="text-xs text-ink-400">{plan.description ?? '—'}</p>
+                </td>
+                <td className="px-4 py-3 text-ink-300">{plan.type.replace('_', ' ').toLowerCase()}</td>
+                <td className="px-4 py-3 text-ink-300">
+                  {plan.interval.replace('_', ' ').toLowerCase()}
+                  {plan.autoRenew ? ' · auto-renew' : ''}
+                </td>
+                <td className="px-4 py-3 stat-value">{money(plan.priceCents, plan.currency)}</td>
+                <td className="px-4 py-3">{plan.classCredits ?? 'unlimited'}</td>
+                <td className="px-4 py-3">{plan.freezeDaysPerYear}</td>
+                <td className="px-4 py-3 stat-value">{plan.activeMembers}</td>
+                <td className="px-4 py-3">
+                  {canWrite ? (
+                    <span className="flex gap-2">
+                      <ActionButton
+                        endpoint={`/api/v1/plans/${plan.id}`}
+                        method="PATCH"
+                        body={{ isActive: !plan.isActive }}
+                        label={plan.isActive ? 'Hide' : 'Publish'}
+                      />
+                      <ActionButton
+                        endpoint={`/api/v1/plans/${plan.id}`}
+                        method="PATCH"
+                        body={{ priceCents: plan.priceCents + 500 }}
+                        label="+5.00"
+                        title="Quick price bump of 5.00"
+                        confirmMessage={`Raise ${plan.name} to ${money(plan.priceCents + 500)}?`}
+                      />
+                    </span>
+                  ) : (
+                    <Badge tone={plan.isActive ? 'positive' : 'neutral'}>{plan.isActive ? 'live' : 'hidden'}</Badge>
+                  )}
+                </td>
+              </tr>
+            ))}
+          </Table>
+        )}
       </Card>
 
       <div className="mt-4 grid gap-4 lg:grid-cols-2">

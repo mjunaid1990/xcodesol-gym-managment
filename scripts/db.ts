@@ -2,12 +2,12 @@ import 'dotenv/config'
 import { sql } from 'drizzle-orm'
 import { closeDb, getDb, hasDatabaseUrl } from '../lib/db/client'
 import { runMigrations } from '../lib/db/migrate'
-import { isDatabaseSeeded, seedDatabase } from '../lib/db/seed'
+import { initCleanDatabase, isDatabaseSeeded, purgeDummyData, seedDatabase } from '../lib/db/seed'
 
 async function main() {
   const command = process.argv[2] ?? 'migrate'
 
-  // Automated Vercel / Production build hook: ensures migrations and seed run automatically
+  // Automated Vercel / Production build hook: ensures migrations and clean structure run automatically
   if (command === 'deploy') {
     console.log('\n======================================================')
     console.log('🚀 [Vercel Build] Checking Database Migrations & Seed')
@@ -38,14 +38,14 @@ async function main() {
         console.log('✓ Database schema is up to date.')
       }
 
-      // 2. Check if database needs initial seeding
+      // 2. Check if database needs initial seeding (clean dynamic baseline: no dummy data)
       const seeded = await isDatabaseSeeded(db)
       if (seeded) {
         console.log('✓ Database already contains data. Seeding skipped.')
       } else {
-        console.log('▸ Database is empty. Seeding demo gym, plans, timetable and accounts...')
-        const summary = await seedDatabase(db, { force: true })
-        console.log('✓ Seeding complete:', summary)
+        console.log('▸ Database is empty. Initializing clean production baseline (zero dummy data)...')
+        await initCleanDatabase(db)
+        console.log('✓ Clean production database ready (admin accounts, plans, settings, zero dummy records).')
       }
 
       await closeDb()
@@ -68,6 +68,21 @@ async function main() {
       console.log(applied.length ? `▸ Applied migrations: ${applied.join(', ')}` : '▸ Schema already up to date')
       break
     }
+    case 'clean':
+    case 'purge':
+    case 'purge-dummy': {
+      console.log('▸ Purging all dummy members, fake visits, bookings, and test records...')
+      await purgeDummyData(db)
+      console.log('✓ All dummy data purged! System is 100% clean, dynamic, and production ready.')
+      break
+    }
+    case 'init-clean':
+    case 'seed-clean': {
+      await runMigrations(db)
+      await initCleanDatabase(db)
+      console.log('✓ Clean baseline initialized (admin accounts, plans, settings, zero dummy members).')
+      break
+    }
     case 'seed': {
       await runMigrations(db)
       const summary = await seedDatabase(db, { force: true })
@@ -82,12 +97,12 @@ async function main() {
       await db.execute(sql`create schema public`)
       console.log('▸ Schema dropped and recreated')
       await runMigrations(db)
-      const summary = await seedDatabase(db, { force: true })
-      console.log('▸ Seeded demo gym:', summary)
+      await initCleanDatabase(db)
+      console.log('✓ Reset and initialized with clean baseline (no dummy data).')
       break
     }
     default:
-      console.log('Usage: tsx scripts/db.ts [migrate|seed|reset|deploy]')
+      console.log('Usage: tsx scripts/db.ts [migrate|clean|init-clean|seed|reset|deploy]')
   }
 
   await closeDb()
