@@ -23,12 +23,12 @@ export default async function ReportsPage({
   searchParams: Promise<{ from?: string; to?: string; branchId?: string }>
 }) {
   const user = await requireStaffUser('report:read')
-  const params = await searchParams
+  const params = (await searchParams) ?? {}
   const db = await getDb()
 
   const range = { ...buildRange(params.from, params.to, 30), branchId: params.branchId ?? user.branchId ?? undefined }
 
-  const [payload, utilisation, trainers, outstanding, cohorts, hours, mix] = await Promise.all([
+  const [payloadVal, utilisationVal, trainersVal, outstandingVal, cohortsVal, hoursVal, mixVal] = await Promise.allSettled([
     dashboardPayload(db, range),
     classUtilization(db, range, 15),
     trainerPerformance(db, range),
@@ -37,6 +37,33 @@ export default async function ReportsPage({
     peakHours(db, range),
     membershipMix(db, range),
   ])
+
+  const payload =
+    payloadVal.status === 'fulfilled'
+      ? payloadVal.value
+      : {
+          metrics: {
+            netRevenueCents: 0,
+            paymentsCount: 0,
+            failedPayments: 0,
+            activeMembers: 0,
+            newMembers: 0,
+            attendanceTotal: 0,
+            uniqueVisitors: 0,
+            fillRatePercent: 0,
+            seatsBooked: 0,
+            sessionsHeld: 0,
+          },
+          revenue: [],
+          signups: [],
+          visits: [],
+        }
+  const utilisation = utilisationVal.status === 'fulfilled' ? utilisationVal.value : []
+  const trainers = trainersVal.status === 'fulfilled' ? trainersVal.value : []
+  const outstanding = outstandingVal.status === 'fulfilled' ? outstandingVal.value : []
+  const cohorts = cohortsVal.status === 'fulfilled' ? cohortsVal.value : []
+  const hours = hoursVal.status === 'fulfilled' ? hoursVal.value : []
+  const mix = mixVal.status === 'fulfilled' ? mixVal.value : []
 
   const { metrics } = payload
   const exportBase = `from=${range.from.toISOString().slice(0, 10)}&to=${range.to.toISOString().slice(0, 10)}${range.branchId ? `&branchId=${range.branchId}` : ''}`

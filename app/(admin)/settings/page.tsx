@@ -36,7 +36,13 @@ interface GymSettings {
 export default async function SettingsPage() {
   const user = await requireStaffUser('setting:read')
   const db = await getDb()
-  const [sections, branchRows] = await Promise.all([getSettingSections(db), listBranches(db, false)])
+  const [sectionsVal, branchRowsVal] = await Promise.allSettled([getSettingSections(db), listBranches(db, false)])
+
+  const sections =
+    sectionsVal.status === 'fulfilled'
+      ? sectionsVal.value
+      : { gym: {}, checkin: {}, billing: {}, classes: {}, updatedAt: null }
+  const branchRows = branchRowsVal.status === 'fulfilled' ? branchRowsVal.value : []
 
   const gym = sections.gym as GymSettings
   const checkin = sections.checkin as CheckinSettings

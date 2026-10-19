@@ -24,15 +24,19 @@ export const dynamic = 'force-dynamic'
 
 export default async function StaffPage({ searchParams }: { searchParams: Promise<{ role?: string; q?: string; branchId?: string }> }) {
   const user = await requireStaffUser('staff:read')
-  const params = await searchParams
+  const params = (await searchParams) ?? {}
   const db = await getDb()
 
   const range = { from: new Date(Date.now() - 30 * 86_400_000), to: new Date() }
-  const [staff, payroll, branchRows] = await Promise.all([
+  const [staffVal, payrollVal, branchRowsVal] = await Promise.allSettled([
     listStaff(db, { role: params.role, q: params.q, branchId: params.branchId }),
     payrollHours(db, range),
     listBranches(db),
   ])
+
+  const staff = staffVal.status === 'fulfilled' ? staffVal.value : []
+  const payroll = payrollVal.status === 'fulfilled' ? payrollVal.value : []
+  const branchRows = branchRowsVal.status === 'fulfilled' ? branchRowsVal.value : []
 
   const canWrite = can(user.role as Role, 'staff:write')
   const totalHours = payroll.reduce((sum, row) => sum + row.taughtHours, 0)

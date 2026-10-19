@@ -18,7 +18,7 @@ import {
   statusTone,
 } from '@/components/ui'
 
-export const metadata = { title: 'Timetable' }
+export const metadata = { title: 'Class Timetable' }
 export const dynamic = 'force-dynamic'
 
 const DAY_MS = 86_400_000
@@ -30,18 +30,25 @@ export default async function ClassesPage({
   searchParams: Promise<{ date?: string; branchId?: string; trainerId?: string; q?: string }>
 }) {
   const user = await requireStaffUser('class:read')
-  const params = await searchParams
+  const params = (await searchParams) ?? {}
   const db = await getDb()
 
   const start = params.date ? new Date(`${params.date}T00:00:00.000Z`) : new Date(new Date().setUTCHours(0, 0, 0, 0))
   const end = new Date(start.getTime() + 7 * DAY_MS)
   const branchId = params.branchId ?? undefined
 
-  const [sessions, templates, context] = await Promise.all([
+  const [sessionsResult, templatesResult, contextResult] = await Promise.allSettled([
     listSessions(db, { from: start, to: end, branchId, trainerId: params.trainerId, title: params.q, limit: 300 }),
     listTemplates(db, { branchId }),
     branchScheduleContext(db, branchId),
   ])
+
+  const sessions = sessionsResult.status === 'fulfilled' ? sessionsResult.value : []
+  const templates = templatesResult.status === 'fulfilled' ? templatesResult.value : []
+  const context =
+    contextResult.status === 'fulfilled'
+      ? contextResult.value
+      : { branches: [], trainers: [], rooms: [] }
 
   const days = Array.from({ length: 7 }, (_, index) => new Date(start.getTime() + index * DAY_MS))
   const canWrite = can(user.role as Role, 'class:write')
@@ -49,83 +56,137 @@ export default async function ClassesPage({
   return (
     <>
       <PageHeader
-        title="Timetable"
-        subtitle={`${formatDate(start)} → ${formatDate(new Date(end.getTime() - DAY_MS))} · ${sessions.length} sessions`}
+        title="Class Timetable"
+        subtitle={`${formatDate(start)} → ${formatDate(new Date(end.getTime() - DAY_MS))} · ${sessions.length} sessions scheduled`}
         actions={
-          <>
+          <div className="flex items-center gap-2">
             <Link
-              href={`/classes?date=${new Date(start.getTime() - 7 * DAY_MS).toISOString().slice(0, 10)}`}
-              className="rounded-xl border border-ink-600 bg-ink-700 px-4 py-3 text-sm"
+              href={`/classes?date=${new Date(start.getTime() - 7 * DAY_MS).toISOString().slice(0, 10)}${branchId ? `&branchId=${branchId}` : ''}`}
+              className="inline-flex items-center gap-1.5 rounded-xl border border-white/[0.08] bg-white/[0.04] px-3.5 py-2 text-xs font-medium text-ink-200 transition-colors hover:bg-white/[0.08] hover:text-white"
             >
-              ← Previous week
+              <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
+              </svg>
+              Prev Week
             </Link>
             <Link
-              href={`/classes?date=${new Date(start.getTime() + 7 * DAY_MS).toISOString().slice(0, 10)}`}
-              className="rounded-xl border border-ink-600 bg-ink-700 px-4 py-3 text-sm"
+              href={`/classes?date=${new Date().toISOString().slice(0, 10)}${branchId ? `&branchId=${branchId}` : ''}`}
+              className="rounded-xl border border-white/[0.08] bg-white/[0.04] px-3 py-2 text-xs font-medium text-ink-200 transition-colors hover:bg-white/[0.08] hover:text-white"
             >
-              Next week →
+              Today
             </Link>
-          </>
+            <Link
+              href={`/classes?date=${new Date(start.getTime() + 7 * DAY_MS).toISOString().slice(0, 10)}${branchId ? `&branchId=${branchId}` : ''}`}
+              className="inline-flex items-center gap-1.5 rounded-xl border border-white/[0.08] bg-white/[0.04] px-3.5 py-2 text-xs font-medium text-ink-200 transition-colors hover:bg-white/[0.08] hover:text-white"
+            >
+              Next Week
+              <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+              </svg>
+            </Link>
+          </div>
         }
       />
 
-      <div className="grid gap-4">
+      <div className="grid gap-5">
         {days.map((day) => {
-          const daySessions = sessions.filter((session) => session.startsAt.toISOString().slice(0, 10) === day.toISOString().slice(0, 10))
-          const isToday = day.toISOString().slice(0, 10) === new Date().toISOString().slice(0, 10)
+          const dayIso = day.toISOString().slice(0, 10)
+          const todayIso = new Date().toISOString().slice(0, 10)
+          const isToday = dayIso === todayIso
+
+          const daySessions = sessions.filter((session) => {
+            const sessionIso = new Date(session.startsAt).toISOString().slice(0, 10)
+            return sessionIso === dayIso
+          })
+
           return (
             <Card
               key={day.toISOString()}
-              title={`${DAY_NAMES[day.getUTCDay()]} ${formatDate(day)}`}
-              description={daySessions.length ? `${daySessions.length} sessions` : 'Nothing scheduled'}
-              actions={isToday ? <Badge tone="accent">today</Badge> : null}
+              title={`${DAY_NAMES[day.getUTCDay()]} — ${formatDate(day)}`}
+              description={daySessions.length ? `${daySessions.length} session${daySessions.length === 1 ? '' : 's'}` : 'No scheduled sessions'}
+              actions={
+                isToday ? (
+                  <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-0.5 text-xs font-semibold text-emerald-400">
+                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                    Today
+                  </span>
+                ) : null
+              }
               padded={false}
             >
               {daySessions.length === 0 ? (
-                <p className="px-5 py-4 text-sm text-ink-400">Free day — good slot for a workshop or a one-off class.</p>
+                <div className="px-5 py-4 text-xs text-ink-400">
+                  Open slot — available for private workshops, open gym floor, or guest coach seminars.
+                </div>
               ) : (
-                <Table head={['Time', 'Class', 'Trainer', 'Room', 'Fill', 'Waitlist', 'Status', '']}>
-                  {daySessions.map((session) => (
-                    <tr key={session.id} className="hover:bg-ink-800/40">
-                      <td className="px-4 py-3 whitespace-nowrap">
-                        {formatTime(session.startsAt)} – {formatTime(session.endsAt)}
-                      </td>
-                      <td className="px-4 py-3">
-                        <Link href={`/classes/${session.id}`} className="font-medium hover:text-white transition-colors">
-                          {session.title}
-                        </Link>
-                        <p className="text-xs text-ink-400">{session.branchName}</p>
-                      </td>
-                      <td className="px-4 py-3 text-ink-300">{session.trainerName ?? '—'}</td>
-                      <td className="px-4 py-3 text-ink-300">{session.roomName ?? 'Floor'}</td>
-                      <td className="px-4 py-3">
-                        <span className="stat-value">
-                          {session.bookedCount}/{session.capacity}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3">
-                        {session.waitlistCount > 0 ? <Badge tone="warning">{session.waitlistCount}</Badge> : '—'}
-                      </td>
-                      <td className="px-4 py-3">
-                        <Badge tone={statusTone(session.status)}>{session.status}</Badge>
-                      </td>
-                      <td className="px-4 py-3">
-                        {canWrite && session.status === 'SCHEDULED' ? (
-                          <ActionButton
-                            endpoint={`/api/v1/classes/${session.id}/cancel`}
-                            body={{ reason: 'Cancelled from the timetable' }}
-                            label="Cancel"
-                            variant="danger"
-                            confirmMessage="Cancel this class and release everyone booked?"
-                          />
-                        ) : (
-                          <Link href={`/classes/${session.id}`} className="text-xs text-ink-300 hover:text-white transition-colors">
-                            Roster →
+                <Table head={['Time', 'Class', 'Trainer', 'Room', 'Booked / Cap', 'Waitlist', 'Status', '']}>
+                  {daySessions.map((session) => {
+                    const startsAt = new Date(session.startsAt)
+                    const endsAt = new Date(session.endsAt)
+                    const fillPercent = Math.min(100, Math.round((session.bookedCount / Math.max(1, session.capacity)) * 100))
+
+                    return (
+                      <tr key={session.id} className="transition-colors hover:bg-white/[0.02]">
+                        <td className="px-4 py-3.5 whitespace-nowrap text-xs font-mono text-ink-300">
+                          {formatTime(startsAt)} – {formatTime(endsAt)}
+                        </td>
+                        <td className="px-4 py-3.5">
+                          <Link href={`/classes/${session.id}`} className="font-medium text-white hover:text-emerald-400 transition-colors">
+                            {session.title}
                           </Link>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
+                          <p className="text-xs text-ink-400">{session.branchName}</p>
+                        </td>
+                        <td className="px-4 py-3.5 text-xs text-ink-300">
+                          {session.trainerName ?? <span className="text-ink-500 italic">Unassigned</span>}
+                        </td>
+                        <td className="px-4 py-3.5 text-xs text-ink-300">{session.roomName ?? 'Main Floor'}</td>
+                        <td className="px-4 py-3.5">
+                          <div className="flex items-center gap-2">
+                            <span className="stat-value text-xs font-semibold text-white">
+                              {session.bookedCount}/{session.capacity}
+                            </span>
+                            <div className="h-1.5 w-12 overflow-hidden rounded-full bg-white/[0.08]">
+                              <div
+                                className={`h-full rounded-full ${
+                                  fillPercent >= 90 ? 'bg-rose-500' : fillPercent >= 70 ? 'bg-amber-400' : 'bg-emerald-400'
+                                }`}
+                                style={{ width: `${fillPercent}%` }}
+                              />
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-4 py-3.5">
+                          {session.waitlistCount > 0 ? (
+                            <Badge tone="warning">{session.waitlistCount} waiting</Badge>
+                          ) : (
+                            <span className="text-ink-500 text-xs">—</span>
+                          )}
+                        </td>
+                        <td className="px-4 py-3.5">
+                          <Badge tone={statusTone(session.status)}>{session.status}</Badge>
+                        </td>
+                        <td className="px-4 py-3.5 text-right">
+                          <div className="flex items-center justify-end gap-2">
+                            <Link
+                              href={`/classes/${session.id}`}
+                              className="rounded-lg border border-white/[0.08] bg-white/[0.04] px-2.5 py-1 text-xs text-ink-300 hover:bg-white/[0.08] hover:text-white transition-colors"
+                            >
+                              Roster
+                            </Link>
+                            {canWrite && session.status === 'SCHEDULED' ? (
+                              <ActionButton
+                                endpoint={`/api/v1/classes/${session.id}/cancel`}
+                                body={{ reason: 'Cancelled from timetable' }}
+                                label="Cancel"
+                                variant="danger"
+                                confirmMessage="Cancel this class session and notify all booked attendees?"
+                              />
+                            ) : null}
+                          </div>
+                        </td>
+                      </tr>
+                    )
+                  })}
                 </Table>
               )}
             </Card>
@@ -133,32 +194,41 @@ export default async function ClassesPage({
         })}
       </div>
 
-      <Card className="mt-6" title="Recurring classes" description="Each template generates sessions for the next 8 weeks" padded={false}>
+      {/* Recurring Templates */}
+      <Card
+        className="mt-6"
+        title="Recurring Class Templates"
+        description="Weekly templates generate scheduled sessions up to 8 weeks out automatically"
+        padded={false}
+      >
         {templates.length === 0 ? (
-          <div className="p-5">
-            <EmptyState title="No recurring classes yet" hint="Add a weekly slot below — the studio timetable builds itself." />
+          <div className="p-6">
+            <EmptyState
+              title="No recurring templates created"
+              hint="Add a weekly schedule slot below to automatically populate the calendar."
+            />
           </div>
         ) : (
-          <Table head={['Day', 'Time', 'Class', 'Trainer', 'Room', 'Capacity', 'Upcoming', '']}>
+          <Table head={['Day', 'Start Time', 'Class Name', 'Trainer', 'Room', 'Capacity', 'Upcoming Sessions', '']}>
             {templates.map((template) => (
-              <tr key={template.id} className="hover:bg-ink-800/40">
-                <td className="px-4 py-3">{DAY_NAMES[template.dayOfWeek]}</td>
-                <td className="px-4 py-3">{template.startTime}</td>
-                <td className="px-4 py-3">
-                  <span className="font-medium">{template.title}</span>
-                  <p className="text-xs text-ink-400">{template.description ?? ''}</p>
+              <tr key={template.id} className="transition-colors hover:bg-white/[0.02]">
+                <td className="px-4 py-3.5 font-medium text-white text-xs">{DAY_NAMES[template.dayOfWeek]}</td>
+                <td className="px-4 py-3.5 font-mono text-xs text-ink-300">{template.startTime}</td>
+                <td className="px-4 py-3.5">
+                  <span className="font-medium text-white text-sm">{template.title}</span>
+                  {template.description ? <p className="text-xs text-ink-400 mt-0.5">{template.description}</p> : null}
                 </td>
-                <td className="px-4 py-3 text-ink-300">{template.trainerName ?? 'Unassigned'}</td>
-                <td className="px-4 py-3 text-ink-300">{template.roomName ?? 'Floor'}</td>
-                <td className="px-4 py-3 stat-value">{template.capacity}</td>
-                <td className="px-4 py-3 stat-value">{template.upcomingSessions}</td>
-                <td className="px-4 py-3">
+                <td className="px-4 py-3.5 text-xs text-ink-300">{template.trainerName ?? 'Unassigned'}</td>
+                <td className="px-4 py-3.5 text-xs text-ink-300">{template.roomName ?? 'Main Floor'}</td>
+                <td className="px-4 py-3.5 stat-value text-xs">{template.capacity}</td>
+                <td className="px-4 py-3.5 stat-value text-xs">{template.upcomingSessions}</td>
+                <td className="px-4 py-3.5 text-right">
                   {canWrite ? (
                     <ActionButton
                       endpoint={`/api/v1/classes/templates/${template.id}`}
                       method="DELETE"
                       label="Retire"
-                      confirmMessage="Stop generating new sessions? Existing sessions stay."
+                      confirmMessage="Retire this template? Existing future sessions will remain on the timetable."
                     />
                   ) : null}
                 </td>
@@ -168,13 +238,15 @@ export default async function ClassesPage({
         )}
       </Card>
 
+      {/* Class creation forms */}
       {canWrite ? (
-        <div className="mt-6 grid gap-4 lg:grid-cols-2">
-          <Card title="Add a one-off class" description="Great for workshops, and clash-checked against the trainer and room">
+        <div className="mt-6 grid gap-6 lg:grid-cols-2">
+          {/* One-off Class */}
+          <Card title="Add One-Off Session" description="Workshop or special class with trainer and room clash-detection">
             <ActionForm
               endpoint="/api/v1/classes"
-              submitLabel="Create class"
-              successMessage="Class added"
+              submitLabel="Create Session"
+              successMessage="Class session created"
               coerce={{
                 capacity: 'number',
                 durationMin: 'number',
@@ -184,8 +256,8 @@ export default async function ClassesPage({
               }}
               className="grid gap-3 md:grid-cols-2"
             >
-              <Field label="Title" htmlFor="sessionTitle">
-                <input id="sessionTitle" name="title" required className={inputClass} placeholder="Saturday Bootcamp" />
+              <Field label="Class Title" htmlFor="sessionTitle">
+                <input id="sessionTitle" name="title" required className={inputClass} placeholder="e.g. Saturday Hyrox Bootcamp" />
               </Field>
               <Field label="Branch" htmlFor="sessionBranch">
                 <select id="sessionBranch" name="branchId" required className={selectClass} defaultValue={user.branchId ?? context.branches[0]?.id}>
@@ -196,7 +268,7 @@ export default async function ClassesPage({
                   ))}
                 </select>
               </Field>
-              <Field label="Starts at (UTC)" htmlFor="startsAt">
+              <Field label="Starts At (UTC)" htmlFor="startsAt">
                 <input id="startsAt" name="startsAt" type="datetime-local" required className={inputClass} />
               </Field>
               <Field label="Duration (minutes)" htmlFor="durationMin">
@@ -217,7 +289,7 @@ export default async function ClassesPage({
                   <option value="">Floor / unassigned</option>
                   {context.rooms.map((room) => (
                     <option key={room.id} value={room.id}>
-                      {room.name} ({room.capacity})
+                      {room.name} ({room.capacity} cap)
                     </option>
                   ))}
                 </select>
@@ -225,22 +297,23 @@ export default async function ClassesPage({
               <Field label="Capacity" htmlFor="capacity">
                 <input id="capacity" name="capacity" type="number" min={1} max={200} defaultValue={16} className={inputClass} />
               </Field>
-              <Field label="Late-cancel fee (cents)" htmlFor="lateCancelPenaltyCents" hint="0 disables the fee">
+              <Field label="Late-cancel fee (cents)" htmlFor="lateCancelPenaltyCents" hint="0 disables penalty fee">
                 <input id="lateCancelPenaltyCents" name="lateCancelPenaltyCents" type="number" min={0} defaultValue={1500} className={inputClass} />
               </Field>
             </ActionForm>
           </Card>
 
-          <Card title="Add a recurring class" description="Creates this week's and the next 7 weeks' sessions, skipping clashes">
+          {/* Recurring Template */}
+          <Card title="Add Recurring Template" description="Auto-generates weekly timetable slots for the next 8 weeks">
             <ActionForm
               endpoint="/api/v1/classes/templates"
-              submitLabel="Create recurring class"
-              successMessage="Template created"
+              submitLabel="Create Template"
+              successMessage="Template created and sessions generated"
               coerce={{ capacity: 'number', durationMin: 'number', dayOfWeek: 'number' }}
               className="grid gap-3 md:grid-cols-2"
             >
-              <Field label="Title" htmlFor="templateTitle">
-                <input id="templateTitle" name="title" required className={inputClass} placeholder="HIIT Circuit" />
+              <Field label="Class Title" htmlFor="templateTitle">
+                <input id="templateTitle" name="title" required className={inputClass} placeholder="e.g. HIIT Strength Circuit" />
               </Field>
               <Field label="Branch" htmlFor="templateBranch">
                 <select id="templateBranch" name="branchId" required className={selectClass} defaultValue={user.branchId ?? context.branches[0]?.id}>
@@ -251,7 +324,7 @@ export default async function ClassesPage({
                   ))}
                 </select>
               </Field>
-              <Field label="Day" htmlFor="dayOfWeek">
+              <Field label="Day of Week" htmlFor="dayOfWeek">
                 <select id="dayOfWeek" name="dayOfWeek" className={selectClass} defaultValue="1">
                   {DAY_NAMES.map((name, index) => (
                     <option key={name} value={index}>
@@ -260,7 +333,7 @@ export default async function ClassesPage({
                   ))}
                 </select>
               </Field>
-              <Field label="Start time (HH:MM)" htmlFor="startTime">
+              <Field label="Start Time (24h HH:MM)" htmlFor="startTime">
                 <input id="startTime" name="startTime" defaultValue="18:30" pattern="\d{2}:\d{2}" className={inputClass} />
               </Field>
               <Field label="Duration (minutes)" htmlFor="templateDuration">
@@ -289,7 +362,7 @@ export default async function ClassesPage({
                   ))}
                 </select>
               </Field>
-              <Field label="Starts on" htmlFor="startsOn" hint="First date this class may run">
+              <Field label="Starts On" htmlFor="startsOn" hint="First calendar date for this recurring series">
                 <input
                   id="startsOn"
                   name="startsOn"
@@ -298,7 +371,7 @@ export default async function ClassesPage({
                   className={inputClass}
                 />
               </Field>
-              <Field label="Cancellation window (hours)" htmlFor="cancelWindowHours">
+              <Field label="Cancellation Window (hours)" htmlFor="cancelWindowHours">
                 <input id="cancelWindowHours" name="cancelWindowHours" type="number" min={0} max={72} defaultValue={6} className={inputClass} />
               </Field>
             </ActionForm>

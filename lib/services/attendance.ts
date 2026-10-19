@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, gte, inArray, or, sql } from 'drizzle-orm'
+import { and, asc, desc, eq, gte, inArray, lt, lte, ne, or, sql } from 'drizzle-orm'
 import type { Database } from '@/lib/db/client'
 import { attendance, bookings, branches, classSessions, users } from '@/lib/db/schema'
 import { conflict, notFound, unprocessable } from '@/lib/api/http'
@@ -61,7 +61,7 @@ export async function checkIn(db: Database, input: CheckInInput): Promise<CheckI
     .limit(1)
   if (recent) {
     throw conflict(
-      `Already checked in at ${recent.checkedInAt.toISOString().slice(11, 16)} (${CHECKIN_COOLDOWN_MINUTES} minute cooldown).`,
+      `Already checked in at ${new Date(recent.checkedInAt).toISOString().slice(11, 16)} (${CHECKIN_COOLDOWN_MINUTES} minute cooldown).`,
     )
   }
 
@@ -186,7 +186,7 @@ export async function listVisits(db: Database, filters: VisitFilters = {}) {
   if (filters.method) conditions.push(eq(attendance.method, filters.method))
   if (filters.sessionId) conditions.push(eq(attendance.sessionId, filters.sessionId))
   if (filters.from) conditions.push(gte(attendance.checkedInAt, filters.from))
-  if (filters.to) conditions.push(sql`${attendance.checkedInAt} <= ${filters.to}`)
+  if (filters.to) conditions.push(lte(attendance.checkedInAt, filters.to))
 
   const where = conditions.length ? and(...conditions) : undefined
 
@@ -268,8 +268,8 @@ export async function floorStats(db: Database, branchId?: string, now = new Date
     .where(
       and(
         gte(classSessions.startsAt, startOfDay),
-        sql`${classSessions.startsAt} < ${new Date(startOfDay.getTime() + 86_400_000)}`,
-        sql`${classSessions.status} <> 'CANCELLED'`,
+        lt(classSessions.startsAt, new Date(startOfDay.getTime() + 86_400_000)),
+        ne(classSessions.status, 'CANCELLED'),
         sessionBranchFilter,
       ),
     )
@@ -288,8 +288,8 @@ export async function floorStats(db: Database, branchId?: string, now = new Date
     .where(
       and(
         gte(classSessions.startsAt, new Date(now.getTime() - 15 * 60_000)),
-        sql`${classSessions.startsAt} < ${new Date(now.getTime() + 8 * 3_600_000)}`,
-        sql`${classSessions.status} <> 'CANCELLED'`,
+        lt(classSessions.startsAt, new Date(now.getTime() + 8 * 3_600_000)),
+        ne(classSessions.status, 'CANCELLED'),
         sessionBranchFilter,
       ),
     )

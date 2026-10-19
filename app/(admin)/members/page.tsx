@@ -24,10 +24,10 @@ interface SearchParams {
 
 export default async function MembersPage({ searchParams }: { searchParams: Promise<SearchParams> }) {
   const user = await requireStaffUser('member:read')
-  const params = await searchParams
+  const params = (await searchParams) ?? {}
   const db = await getDb()
 
-  const [result, branchRows, planRows] = await Promise.all([
+  const [resultVal, branchRowsVal, planRowsVal] = await Promise.allSettled([
     listMembers(db, {
       q: params.q,
       status: params.status,
@@ -42,6 +42,10 @@ export default async function MembersPage({ searchParams }: { searchParams: Prom
     listBranchesForFilter(db),
     listPlansForSelect(db),
   ])
+
+  const result = resultVal.status === 'fulfilled' ? resultVal.value : { rows: [], total: 0, page: 1, pageSize: 25, totalPages: 1 }
+  const branchRows = branchRowsVal.status === 'fulfilled' ? branchRowsVal.value : []
+  const planRows = planRowsVal.status === 'fulfilled' ? planRowsVal.value : []
 
   const rows: MemberRow[] = result.rows.map((row) => ({
     id: row.id,

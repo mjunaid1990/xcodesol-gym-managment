@@ -11,7 +11,8 @@ export const dynamic = 'force-dynamic'
 export default async function AnnouncementsPage() {
   const user = await requireStaffUser('announcement:read')
   const db = await getDb()
-  const announcements = await listAnnouncements(db, {})
+  const announcementsResult = await Promise.allSettled([listAnnouncements(db, {})])
+  const announcements = announcementsResult[0].status === 'fulfilled' ? announcementsResult[0].value : []
   const canWrite = can(user.role as Role, 'announcement:write')
 
   const drafts = announcements.filter((row) => row.status === 'DRAFT')

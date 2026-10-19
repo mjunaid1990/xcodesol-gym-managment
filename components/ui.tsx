@@ -353,29 +353,33 @@ export function BarChart({ data, unit = '' }: { data: { label: string; value: nu
 export function formatDate(value: string | Date | null | undefined): string {
   if (!value) return '—'
   const date = typeof value === 'string' ? new Date(value) : value
+  if (isNaN(date.getTime())) return '—'
   return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
 }
 
 export function formatDateTime(value: string | Date | null | undefined): string {
   if (!value) return '—'
   const date = typeof value === 'string' ? new Date(value) : value
+  if (isNaN(date.getTime())) return '—'
   return date.toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })
 }
 
 export function formatTime(value: string | Date | null | undefined): string {
   if (!value) return '—'
   const date = typeof value === 'string' ? new Date(value) : value
+  if (isNaN(date.getTime())) return '—'
   return date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
 }
 
 export function money(cents: number | null | undefined, currency = 'USD'): string {
-  if (cents === null || cents === undefined) return '—'
+  if (cents === null || cents === undefined || isNaN(cents)) return '—'
   return new Intl.NumberFormat('en-US', { style: 'currency', currency, maximumFractionDigits: 2 }).format(cents / 100)
 }
 
 export function relativeTime(value: string | Date | null | undefined): string {
   if (!value) return 'never'
   const date = typeof value === 'string' ? new Date(value) : value
+  if (isNaN(date.getTime())) return 'never'
   const diff = Date.now() - date.getTime()
   const days = Math.floor(diff / 86_400_000)
   if (days <= 0) return 'today'

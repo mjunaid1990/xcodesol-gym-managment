@@ -23,7 +23,10 @@ export const dynamic = 'force-dynamic'
 export default async function PlansPage() {
   const user = await requireStaffUser('plan:read')
   const db = await getDb()
-  const [plans, discounts, branchRows] = await Promise.all([listPlansWithCounts(db), listDiscounts(db), listBranches(db)])
+  const [plansVal, discountsVal, branchRowsVal] = await Promise.allSettled([listPlansWithCounts(db), listDiscounts(db), listBranches(db)])
+  const plans = plansVal.status === 'fulfilled' ? plansVal.value : []
+  const discounts = discountsVal.status === 'fulfilled' ? discountsVal.value : []
+  const branchRows = branchRowsVal.status === 'fulfilled' ? branchRowsVal.value : []
 
   const canWrite = can(user.role as Role, 'plan:write')
   const activeMembers = plans.reduce((total, plan) => total + plan.activeMembers, 0)

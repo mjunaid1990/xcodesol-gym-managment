@@ -16,10 +16,10 @@ export default async function PaymentsPage({
   searchParams: Promise<{ status?: string; branchId?: string; memberId?: string; from?: string; to?: string }>
 }) {
   const user = await requireStaffUser('payment:read')
-  const params = await searchParams
+  const params = (await searchParams) ?? {}
   const db = await getDb()
 
-  const [payments, invoices, renewals] = await Promise.all([
+  const [paymentsVal, invoicesVal, renewalsVal] = await Promise.allSettled([
     listPaymentsForAdmin(db, {
       status: params.status,
       branchId: params.branchId,
@@ -31,6 +31,10 @@ export default async function PaymentsPage({
     listInvoicesForAdmin(db, { status: undefined, branchId: params.branchId, limit: 25 }),
     listUpcomingRenewals(db, 8),
   ])
+
+  const payments = paymentsVal.status === 'fulfilled' ? paymentsVal.value : { rows: [], totals: { collected: 0, refunded: 0, failed: 0, pending: 0 } }
+  const invoices = invoicesVal.status === 'fulfilled' ? invoicesVal.value : { rows: [], totals: { open: 0, paid: 0, overdue: 0 } }
+  const renewals = renewalsVal.status === 'fulfilled' ? renewalsVal.value : []
 
   const canRefund = can(user.role as Role, 'payment:refund')
   const canWrite = can(user.role as Role, 'payment:write')

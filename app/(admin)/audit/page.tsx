@@ -15,7 +15,7 @@ export default async function AuditPage({
   searchParams: Promise<{ action?: string; entity?: string; from?: string; to?: string }>
 }) {
   await requireStaffUser('audit:read')
-  const params = await searchParams
+  const params = (await searchParams) ?? {}
   const db = await getDb()
 
   const conditions = []
@@ -24,7 +24,7 @@ export default async function AuditPage({
   if (params.from) conditions.push(gte(auditLogs.createdAt, new Date(params.from)))
   if (params.to) conditions.push(lte(auditLogs.createdAt, new Date(`${params.to}T23:59:59.999Z`)))
 
-  const [rows, totals] = await Promise.all([
+  const [rowsVal, totalsVal] = await Promise.allSettled([
     db
       .select({
         id: auditLogs.id,
@@ -48,6 +48,9 @@ export default async function AuditPage({
       .orderBy(desc(sql`count(*)`))
       .limit(10),
   ])
+
+  const rows = rowsVal.status === 'fulfilled' ? rowsVal.value : []
+  const totals = totalsVal.status === 'fulfilled' ? totalsVal.value : []
 
   return (
     <>
