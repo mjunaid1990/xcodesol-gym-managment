@@ -61,8 +61,8 @@ export default function LoginScreen() {
     <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.flex}>
       <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
         <View style={styles.brand}>
-          <Text style={styles.brandMark}>IH</Text>
-          <Text style={styles.brandName}>Ironhouse Gym</Text>
+          <Text style={styles.brandMark}>XC</Text>
+          <Text style={styles.brandName}>Xcodesol Gym</Text>
         </View>
 
         <Text style={styles.headline}>

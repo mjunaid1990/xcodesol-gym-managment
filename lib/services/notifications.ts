@@ -87,7 +87,7 @@ export async function deliver(db: Database, notificationId: string): Promise<voi
           method: 'POST',
           headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            from: process.env.EMAIL_FROM ?? 'Ironhouse Gym <noreply@example.com>',
+            from: process.env.EMAIL_FROM ?? 'Xcodesol Gym <noreply@example.com>',
             to: [recipient.email],
             subject: row.title,
             html: `<div style="font-family:system-ui,sans-serif"><h2>${escapeHtml(row.title)}</h2><p>${escapeHtml(row.body)}</p></div>`,

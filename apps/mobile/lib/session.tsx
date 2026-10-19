@@ -26,6 +26,7 @@ const SessionContext = createContext<SessionState | null>(null)
  * convenience, never a reason the app cannot be used.
  */
 async function registerForPush(): Promise<void> {
+  if (Platform.OS === 'web') return
   try {
     const settings = await Notifications.getPermissionsAsync()
     let status = settings.status

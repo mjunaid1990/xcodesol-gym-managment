@@ -1,7 +1,40 @@
+import { Platform } from 'react-native'
 import * as SecureStore from 'expo-secure-store'
 
 const ACCESS_KEY = 'ih_access_token'
 const REFRESH_KEY = 'ih_refresh_token'
+
+const isWeb = Platform.OS === 'web'
+
+async function storageSet(key: string, value: string): Promise<void> {
+  if (isWeb) {
+    if (typeof window !== 'undefined' && window.localStorage) {
+      window.localStorage.setItem(key, value)
+    }
+    return
+  }
+  await SecureStore.setItemAsync(key, value)
+}
+
+async function storageGet(key: string): Promise<string | null> {
+  if (isWeb) {
+    if (typeof window !== 'undefined' && window.localStorage) {
+      return window.localStorage.getItem(key)
+    }
+    return null
+  }
+  return SecureStore.getItemAsync(key)
+}
+
+async function storageDelete(key: string): Promise<void> {
+  if (isWeb) {
+    if (typeof window !== 'undefined' && window.localStorage) {
+      window.localStorage.removeItem(key)
+    }
+    return
+  }
+  await SecureStore.deleteItemAsync(key)
+}
 
 /** Set EXPO_PUBLIC_API_URL to your deployed Vercel URL (no trailing slash). Defaults to live production Vercel endpoint. */
 export const API_BASE = (
@@ -26,17 +59,17 @@ export interface AuthPayload {
 }
 
 export async function saveTokens(accessToken: string, refreshToken?: string): Promise<void> {
-  await SecureStore.setItemAsync(ACCESS_KEY, accessToken)
-  if (refreshToken) await SecureStore.setItemAsync(REFRESH_KEY, refreshToken)
+  await storageSet(ACCESS_KEY, accessToken)
+  if (refreshToken) await storageSet(REFRESH_KEY, refreshToken)
 }
 
 export async function clearTokens(): Promise<void> {
-  await SecureStore.deleteItemAsync(ACCESS_KEY)
-  await SecureStore.deleteItemAsync(REFRESH_KEY)
+  await storageDelete(ACCESS_KEY)
+  await storageDelete(REFRESH_KEY)
 }
 
 export async function getAccessToken(): Promise<string | null> {
-  return SecureStore.getItemAsync(ACCESS_KEY)
+  return storageGet(ACCESS_KEY)
 }
 
 export class ApiError extends Error {
@@ -94,7 +127,7 @@ export async function refreshSession(): Promise<boolean> {
   if (refreshing) return refreshing
   refreshing = (async () => {
     try {
-      const refreshToken = await SecureStore.getItemAsync(REFRESH_KEY)
+      const refreshToken = await storageGet(REFRESH_KEY)
       if (!refreshToken) return false
       const response = await fetch(`${API_BASE}/api/v1/auth/refresh`, {
         method: 'POST',

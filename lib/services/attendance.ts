@@ -357,7 +357,7 @@ export async function sendWinBackNudge(db: Database, memberId: string, message: 
   await notify(db, {
     userId: memberId,
     type: 'ANNOUNCEMENT',
-    title: 'We miss you at Ironhouse',
+    title: 'We miss you at Xcodesol',
     body: message,
     channels: ['IN_APP', 'PUSH', 'EMAIL'],
   })

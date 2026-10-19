@@ -6,10 +6,10 @@ export default function NoAccessPage() {
   return (
     <main id="main" className="mx-auto flex min-h-screen max-w-xl flex-col justify-center gap-6 px-6">
       <div>
-        <p className="text-xs font-semibold uppercase tracking-[0.3em] text-ink-300">Ironhouse Console</p>
+        <p className="text-xs font-semibold uppercase tracking-[0.3em] text-ink-300">Xcodesol Console</p>
         <h1 className="mt-3 text-3xl font-semibold tracking-tight text-white">This console is for gym staff</h1>
         <p className="mt-3 text-sm text-ink-300">
-          Members book classes, renew and check in from the Ironhouse mobile app. If you are staff and cannot
+          Members book classes, renew and check in from the Xcodesol mobile app. If you are staff and cannot
           see the dashboard, your role may not include web access — ask a manager to update it.
         </p>
       </div>

@@ -31,8 +31,8 @@ export async function signAccessToken(claims: AccessClaims): Promise<string> {
     .setProtectedHeader({ alg: 'HS256', typ: 'JWT' })
     .setSubject(claims.sub)
     .setIssuedAt()
-    .setIssuer('ironhouse-gym')
-    .setAudience('ironhouse-app')
+    .setIssuer('xcodesol-gym')
+    .setAudience('xcodesol-app')
     .setExpirationTime(`${ACCESS_TTL_MINUTES}m`)
     .sign(authSecret())
 }
@@ -40,8 +40,8 @@ export async function signAccessToken(claims: AccessClaims): Promise<string> {
 export async function verifyAccessToken(token: string): Promise<AccessClaims> {
   try {
     const { payload } = await jwtVerify(token, authSecret(), {
-      issuer: 'ironhouse-gym',
-      audience: 'ironhouse-app',
+      issuer: ['xcodesol-gym', 'ironhouse-gym'],
+      audience: ['xcodesol-app', 'ironhouse-app'],
     })
     return {
       sub: String(payload.sub),

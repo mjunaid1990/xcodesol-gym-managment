@@ -51,7 +51,7 @@ export default async function DashboardPage() {
   const expiring = expiringRes.status === 'fulfilled' ? expiringRes.value : { rows: [], total: 0, page: 1, pageSize: 8 }
   const settings = settingsRes.status === 'fulfilled' ? settingsRes.value : { gym: {}, checkin: {}, billing: {}, classes: {}, updatedAt: null }
 
-  const gymName = (settings?.gym as { name?: string } | undefined)?.name ?? 'Ironhouse Fitness'
+  const gymName = (settings?.gym as { name?: string } | undefined)?.name ?? 'Xcodesol Gym'
   const metrics = payload?.metrics ?? {
     revenueCents: 0,
     refundedCents: 0,

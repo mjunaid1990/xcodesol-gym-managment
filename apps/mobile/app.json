@@ -1,37 +1,53 @@
 {
   "expo": {
-    "name": "Ironhouse Gym",
-    "slug": "ironhouse-gym",
+    "name": "Xcodesol Gym",
+    "slug": "xcodesol-gym",
     "version": "1.0.0",
     "orientation": "portrait",
-    "scheme": "ironhouse",
+    "scheme": "xcodesol",
     "userInterfaceStyle": "dark",
     "newArchEnabled": true,
     "splash": {
       "backgroundColor": "#07090c",
       "resizeMode": "contain"
     },
-    "assetBundlePatterns": ["**/*"],
+    "assetBundlePatterns": [
+      "**/*"
+    ],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.ironhouse.gym",
+      "bundleIdentifier": "com.xcodesol.gym",
       "infoPlist": {
         "NSCameraUsageDescription": "Scan gym door QR codes and class check-in passes.",
         "NSFaceIDUsageDescription": "Sign in quickly with Face ID (optional)."
       }
     },
     "android": {
-      "package": "com.ironhouse.gym",
+      "package": "com.xcodesol.gym",
       "adaptiveIcon": {
         "backgroundColor": "#07090c"
       },
-      "permissions": ["CAMERA", "POST_NOTIFICATIONS"]
+      "permissions": [
+        "CAMERA",
+        "POST_NOTIFICATIONS"
+      ]
     },
-    "plugins": ["expo-router", "expo-secure-store", "expo-notifications"],
+    "plugins": [
+      "expo-router",
+      "expo-secure-store",
+      "expo-notifications"
+    ],
     "extra": {
-      "router": { "origin": false },
-      "eas": { "projectId": "REPLACE_WITH_YOUR_EAS_PROJECT_ID" }
+      "router": {
+        "origin": false
+      },
+      "eas": {
+        "projectId": "57b38459-b34e-488e-8e0a-0aca0ce5cd21"
+      }
     },
-    "experiments": { "typedRoutes": false }
+    "experiments": {
+      "typedRoutes": false
+    },
+    "owner": "mjunaid1990"
   }
 }

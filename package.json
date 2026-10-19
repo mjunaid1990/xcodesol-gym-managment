@@ -1,5 +1,5 @@
 {
-  "name": "ironhouse-gym",
+  "name": "xcodesol-gym",
   "version": "1.0.0",
   "private": true,
   "description": "Gym management system: admin dashboard, member/trainer REST API, and Expo mobile app.",

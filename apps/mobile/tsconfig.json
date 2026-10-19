@@ -3,9 +3,21 @@
   "compilerOptions": {
     "strict": true,
     "jsx": "react-jsx",
-    "paths": { "@/*": ["./*"] },
-    "types": ["react", "react-native"]
+    "paths": {
+      "@/*": [
+        "./*"
+      ]
+    },
+    "types": [
+      "react",
+      "react-native"
+    ]
   },
-  "include": ["**/*.ts", "**/*.tsx", ".expo/types/**/*.ts", "expo-env.d.ts"],
-  "exclude": ["node_modules"]
+  "include": [
+    "**/*.ts",
+    "**/*.tsx"
+  ],
+  "exclude": [
+    "node_modules"
+  ]
 }

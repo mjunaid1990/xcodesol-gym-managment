@@ -19,12 +19,12 @@ export default async function AdminLayout({ children }: { children: React.ReactN
           <div className="flex items-center justify-between px-5 py-4 border-b border-white/[0.06]">
             <Link href="/dashboard" className="flex items-center gap-3 group">
               <div className="relative flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-white via-zinc-200 to-zinc-400 text-ink-950 font-black text-xs shadow-[0_0_15px_rgba(255,255,255,0.2)] transition-transform group-hover:scale-105">
-                IH
+                XC
                 <span className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-emerald-500 ring-2 ring-[#0c0c0f]" />
               </div>
               <div className="flex flex-col">
                 <span className="text-sm font-semibold tracking-tight text-white group-hover:text-zinc-200 transition-colors">
-                  Ironhouse Gym
+                  Xcodesol Gym
                 </span>
                 <span className="text-[10px] font-medium tracking-wider text-ink-400 uppercase">
                   Management Pro

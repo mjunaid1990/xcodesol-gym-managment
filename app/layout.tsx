@@ -3,12 +3,12 @@ import './globals.css'
 
 export const metadata: Metadata = {
   title: {
-    default: 'Ironhouse Gym — Operations',
-    template: '%s · Ironhouse Gym',
+    default: 'Xcodesol Gym — Operations',
+    template: '%s · Xcodesol Gym',
   },
   description:
     'Run the gym from one screen: memberships, classes, bookings, check-ins, payments and reports for every branch.',
-  applicationName: 'Ironhouse Gym',
+  applicationName: 'Xcodesol Gym',
 }
 
 export const viewport: Viewport = {

@@ -2,7 +2,7 @@ import { redirect } from 'next/navigation'
 import { getCurrentUser } from '@/lib/auth/current-user'
 import { LoginForm } from './LoginForm'
 
-export const metadata = { title: 'Sign In — Ironhouse Console' }
+export const metadata = { title: 'Sign In — Xcodesol Console' }
 export const dynamic = 'force-dynamic'
 
 export default async function LoginPage() {
@@ -20,9 +20,9 @@ export default async function LoginPage() {
         <div className="relative z-10">
           <div className="flex items-center gap-2.5">
             <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-white text-ink-950 font-black text-xs shadow-[0_0_15px_rgba(255,255,255,0.2)]">
-              IH
+              XC
             </div>
-            <span className="text-xs font-semibold uppercase tracking-[0.25em] text-ink-300">Ironhouse Console</span>
+            <span className="text-xs font-semibold uppercase tracking-[0.25em] text-ink-300">Xcodesol Console</span>
           </div>
 
           <h1 className="mt-8 max-w-md text-4xl font-bold leading-tight tracking-tight text-white">

@@ -98,7 +98,7 @@ export async function registerUser(
   await notify(db, {
     userId: user!.id,
     type: 'ANNOUNCEMENT',
-    title: 'Welcome to Ironhouse',
+    title: 'Welcome to Xcodesol',
     body: `Confirm your email to finish setting up your account. Your verification code: ${verificationToken}`,
     channels: ['EMAIL'],
   })

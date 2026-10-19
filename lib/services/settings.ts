@@ -29,8 +29,8 @@ export interface GymSettings {
 }
 
 export const DEFAULT_SETTINGS: GymSettings = {
-  name: 'Ironhouse Fitness',
-  supportEmail: 'help@ironhouse.test',
+  name: 'Xcodesol Gym',
+  supportEmail: 'help@xcodesol.test',
   supportPhone: '',
   currency: 'USD',
   checkin: { qrEnabled: true, qrTtlSeconds: 90, allowManualOverride: true, cooldownMinutes: 30 },
