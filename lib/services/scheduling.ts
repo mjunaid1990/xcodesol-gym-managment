@@ -265,7 +265,7 @@ export async function updateTemplate(
     if ((booked?.count ?? 0) > 0) continue
 
     const { startsAt, endsAt } = combineDateTime(session.startsAt, updated!.startTime, updated!.durationMin)
-    if (startsAt.getTime() !== session.startsAt.getTime()) {
+    if (startsAt.getTime() !== new Date(session.startsAt).getTime()) {
       const clash = await findConflicts(db, {
         branchId: updated!.branchId,
         trainerId: updated!.trainerId,

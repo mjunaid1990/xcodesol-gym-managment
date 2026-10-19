@@ -39,9 +39,35 @@ export default async function DashboardPage() {
     getSettingSections(db),
   ])
 
-  const gymName = (settings.gym as { name?: string }).name ?? 'Your gym'
-  const { metrics } = payload
-  const nextSessions = sessions.filter((session) => session.startsAt.getTime() > Date.now() - 15 * 60_000).slice(0, 5)
+  const gymName = (settings?.gym as { name?: string } | undefined)?.name ?? 'Your gym'
+  const metrics = payload?.metrics ?? {
+    revenueCents: 0,
+    refundedCents: 0,
+    netRevenueCents: 0,
+    paymentsCount: 0,
+    failedPayments: 0,
+    newMembers: 0,
+    activeMembers: 0,
+    frozenMembers: 0,
+    expiringIn7Days: 0,
+    cancelledInRange: 0,
+    attendanceTotal: 0,
+    uniqueVisitors: 0,
+    sessionsHeld: 0,
+    seatsBooked: 0,
+    fillRatePercent: 0,
+    outstandingCents: 0,
+    outstandingInvoices: 0,
+    averageRevenuePerMemberCents: 0,
+    churnRatePercent: 0,
+  }
+  const nextSessions = (sessions ?? [])
+    .filter((session) => {
+      if (!session?.startsAt) return false
+      const time = new Date(session.startsAt).getTime()
+      return !isNaN(time) && time > Date.now() - 15 * 60_000
+    })
+    .slice(0, 5)
 
   return (
     <>
@@ -89,7 +115,7 @@ export default async function DashboardPage() {
 
       <div className="mt-4 grid gap-4 lg:grid-cols-3">
         <Card title="Revenue" description="Net of refunds, by day" className="lg:col-span-2">
-          <Sparkline points={payload.revenue.map((point) => point.value)} label={`Last 30 days · ${money(metrics.revenueCents)} billed`} />
+          <Sparkline points={(payload?.revenue ?? []).map((point) => point.value)} label={`Last 30 days · ${money(metrics.revenueCents)} billed`} />
           <div className="mt-4 grid grid-cols-3 gap-4 border-t border-ink-800 pt-4 text-sm">
             <div>
               <p className="text-xs text-ink-400">Refunded</p>
@@ -106,19 +132,19 @@ export default async function DashboardPage() {
           </div>
         </Card>
 
-        <Card title="Live floor" description={`${floor.visitsToday} check-ins today`}>
+        <Card title="Live floor" description={`${floor?.visitsToday ?? 0} check-ins today`}>
           <div className="grid grid-cols-2 gap-3 text-sm">
             <div>
               <p className="text-xs text-ink-400">Unique members</p>
-              <p className="stat-value mt-1 text-xl">{floor.uniqueToday}</p>
+              <p className="stat-value mt-1 text-xl">{floor?.uniqueToday ?? 0}</p>
             </div>
             <div>
               <p className="text-xs text-ink-400">Last hour</p>
-              <p className="stat-value mt-1 text-xl">{floor.visitsLastHour}</p>
+              <p className="stat-value mt-1 text-xl">{floor?.visitsLastHour ?? 0}</p>
             </div>
           </div>
           <ul className="mt-4 space-y-2 border-t border-ink-800 pt-3">
-            {floor.recentVisits.slice(0, 5).map((visit) => (
+            {(floor?.recentVisits ?? []).slice(0, 5).map((visit) => (
               <li key={visit.id} className="flex items-center justify-between gap-3 text-xs">
                 <span className="truncate text-ink-200">{visit.memberName}</span>
                 <span className="flex items-center gap-2 text-ink-400">
@@ -127,7 +153,7 @@ export default async function DashboardPage() {
                 </span>
               </li>
             ))}
-            {floor.recentVisits.length === 0 ? <li className="text-xs text-ink-400">Nobody has checked in yet today.</li> : null}
+            {(!floor?.recentVisits || floor.recentVisits.length === 0) ? <li className="text-xs text-ink-400">Nobody has checked in yet today.</li> : null}
           </ul>
         </Card>
       </div>
@@ -171,7 +197,7 @@ export default async function DashboardPage() {
 
       <div className="mt-4 grid gap-4 lg:grid-cols-2">
         <Card title="Renewals due in 7 days" padded={false}>
-          {expiring.rows.length === 0 ? (
+          {(!expiring?.rows || expiring.rows.length === 0) ? (
             <div className="p-5">
               <EmptyState title="No memberships expiring this week" />
             </div>
@@ -197,45 +223,57 @@ export default async function DashboardPage() {
         </Card>
 
         <Card title="Popular classes" description="Fill rate over the last 30 days" padded={false}>
-          <Table head={['Class', 'When', 'Fill', 'No-shows']}>
-            {payload.utilisation.map((row) => (
-              <tr key={row.sessionId} className="hover:bg-ink-800/40">
-                <td className="px-4 py-3">
-                  <Link href={`/classes/${row.sessionId}`} className="font-medium hover:text-white transition-colors">
-                    {row.title}
-                  </Link>
-                  <p className="text-xs text-ink-400">{row.trainerName ?? 'Unassigned'}</p>
-                </td>
-                <td className="px-4 py-3 text-ink-300">{relativeTime(row.startsAt)}</td>
-                <td className="px-4 py-3">
-                  <span className="stat-value">{row.fillPercent}%</span>
-                  <p className="text-xs text-ink-400">
-                    {row.booked}/{row.capacity}
-                  </p>
-                </td>
-                <td className="px-4 py-3 text-ink-300">{row.noShows}</td>
-              </tr>
-            ))}
-          </Table>
+          {(!payload?.utilisation || payload.utilisation.length === 0) ? (
+            <div className="p-5">
+              <EmptyState title="No class statistics yet" hint="Class fill rates will appear as bookings come in." />
+            </div>
+          ) : (
+            <Table head={['Class', 'When', 'Fill', 'No-shows']}>
+              {payload.utilisation.map((row) => (
+                <tr key={row.sessionId} className="hover:bg-ink-800/40">
+                  <td className="px-4 py-3">
+                    <Link href={`/classes/${row.sessionId}`} className="font-medium hover:text-white transition-colors">
+                      {row.title}
+                    </Link>
+                    <p className="text-xs text-ink-400">{row.trainerName ?? 'Unassigned'}</p>
+                  </td>
+                  <td className="px-4 py-3 text-ink-300">{relativeTime(row.startsAt)}</td>
+                  <td className="px-4 py-3">
+                    <span className="stat-value">{row.fillPercent}%</span>
+                    <p className="text-xs text-ink-400">
+                      {row.booked}/{row.capacity}
+                    </p>
+                  </td>
+                  <td className="px-4 py-3 text-ink-300">{row.noShows}</td>
+                </tr>
+              ))}
+            </Table>
+          )}
         </Card>
       </div>
 
       <div className="mt-4 grid gap-4 lg:grid-cols-2">
         <Card title="Membership mix" padded={false}>
-          <Table head={['Plan', 'Type', 'Active', 'Revenue (30d)']}>
-            {payload.mix.map((row) => (
-              <tr key={row.planId}>
-                <td className="px-4 py-3">{row.planName}</td>
-                <td className="px-4 py-3 text-ink-300">{row.planType.replace('_', ' ').toLowerCase()}</td>
-                <td className="px-4 py-3 stat-value">{row.active}</td>
-                <td className="px-4 py-3">{money(row.revenueCents)}</td>
-              </tr>
-            ))}
-          </Table>
+          {(!payload?.mix || payload.mix.length === 0) ? (
+            <div className="p-5">
+              <EmptyState title="No plan breakdown available" />
+            </div>
+          ) : (
+            <Table head={['Plan', 'Type', 'Active', 'Revenue (30d)']}>
+              {payload.mix.map((row) => (
+                <tr key={row.planId}>
+                  <td className="px-4 py-3">{row.planName}</td>
+                  <td className="px-4 py-3 text-ink-300">{row.planType.replace('_', ' ').toLowerCase()}</td>
+                  <td className="px-4 py-3 stat-value">{row.active}</td>
+                  <td className="px-4 py-3">{money(row.revenueCents)}</td>
+                </tr>
+              ))}
+            </Table>
+          )}
         </Card>
 
         <Card title="Outstanding payments" description="Oldest first" padded={false}>
-          {payload.outstanding.length === 0 ? (
+          {(!payload?.outstanding || payload.outstanding.length === 0) ? (
             <div className="p-5">
               <EmptyState title="Everyone is paid up" hint="No open invoices right now." />
             </div>
@@ -270,10 +308,15 @@ export default async function DashboardPage() {
 }
 
 async function PeakHours({ branchId }: { branchId?: string }) {
-  const db = await getDb()
-  const hours = await peakHours(db, { ...buildRange(null, null, 30), branchId })
-  const buckets = hours
-    .filter((bucket) => bucket.hour >= 5 && bucket.hour <= 22)
-    .map((bucket) => ({ label: `${String(bucket.hour).padStart(2, '0')}:00`, value: bucket.visits }))
-  return <BarChart data={buckets} />
+  try {
+    const db = await getDb()
+    const hours = await peakHours(db, { ...buildRange(null, null, 30), branchId })
+    const buckets = (hours ?? [])
+      .filter((bucket) => bucket.hour >= 5 && bucket.hour <= 22)
+      .map((bucket) => ({ label: `${String(bucket.hour).padStart(2, '0')}:00`, value: bucket.visits }))
+    return <BarChart data={buckets} />
+  } catch (err) {
+    console.error('Failed to load peak hours:', err)
+    return <p className="text-xs text-ink-400 p-4">Peak hours data unavailable</p>
+  }
 }

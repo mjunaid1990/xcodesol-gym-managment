@@ -1,4 +1,4 @@
-export const ROLES = ['MEMBER', 'TRAINER', 'STAFF', 'MANAGER', 'ADMIN'] as const
+export const ROLES = ['MEMBER', 'TRAINER', 'STAFF', 'MANAGER', 'ADMIN', 'OWNER'] as const
 export type Role = (typeof ROLES)[number]
 
 export const ROLE_LABELS: Record<Role, string> = {
@@ -7,6 +7,7 @@ export const ROLE_LABELS: Record<Role, string> = {
   STAFF: 'Front desk',
   MANAGER: 'Manager',
   ADMIN: 'Admin',
+  OWNER: 'Owner',
 }
 
 export const USER_STATUSES = ['ACTIVE', 'INACTIVE', 'SUSPENDED'] as const
@@ -96,6 +97,7 @@ const TRAINER_PERMISSIONS: Permission[] = [
 ]
 
 export const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
+  OWNER: [...PERMISSIONS],
   ADMIN: [...PERMISSIONS],
   MANAGER: PERMISSIONS.filter((p) => p !== 'setting:write'),
   STAFF: STAFF_PERMISSIONS,
@@ -113,6 +115,7 @@ export const ROLE_RANK: Record<Role, number> = {
   STAFF: 3,
   MANAGER: 4,
   ADMIN: 5,
+  OWNER: 6,
 }
 
 export const WAIVER_VERSION = '2026-01'

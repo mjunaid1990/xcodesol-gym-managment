@@ -52,7 +52,7 @@ export async function bookSession(db: Database, input: BookInput): Promise<BookR
   const [session] = await db.select().from(classSessions).where(eq(classSessions.id, input.sessionId)).limit(1)
   if (!session) throw notFound('Class session')
   if (session.status !== 'SCHEDULED') throw unprocessable(`That class is ${session.status.toLowerCase()}`)
-  if (session.startsAt.getTime() < Date.now()) throw unprocessable('That class has already started')
+  if (new Date(session.startsAt).getTime() < Date.now()) throw unprocessable('That class has already started')
 
   const entitlement = await getEntitlement(db, input.memberId)
   const usesCredits = entitlement.membership?.creditsRemaining !== null && entitlement.membership?.creditsRemaining !== undefined
@@ -166,7 +166,7 @@ export async function bookSession(db: Database, input: BookInput): Promise<BookR
 export async function promoteFromWaitlist(db: Database, sessionId: string): Promise<Booking | null> {
   const [session] = await db.select().from(classSessions).where(eq(classSessions.id, sessionId)).limit(1)
   if (!session) return null
-  if (session.status !== 'SCHEDULED' || session.startsAt.getTime() < Date.now()) return null
+  if (session.status !== 'SCHEDULED' || new Date(session.startsAt).getTime() < Date.now()) return null
 
   const seated = await seatedCount(db, sessionId)
   if (seated >= session.capacity) return null
@@ -264,7 +264,7 @@ export async function cancelBooking(db: Database, bookingId: string, input: Canc
   if (!session) throw notFound('Class session')
 
   const now = new Date()
-  const cutoff = new Date(session.startsAt.getTime() - session.cancelWindowHours * 3_600_000)
+  const cutoff = new Date(new Date(session.startsAt).getTime() - session.cancelWindowHours * 3_600_000)
   // Server clock only: never trust the device to decide whether a cancellation is late.
   const late = booking.status === 'BOOKED' && now > cutoff && now < session.startsAt
   const penaltyCents = input.waivePenalty ? 0 : penaltyAmount(session.lateCancelPenaltyCents, late)

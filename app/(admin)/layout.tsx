@@ -35,7 +35,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
             <p className="text-sm font-medium text-ink-100">
               {user.firstName} {user.lastName}
             </p>
-            <p className="text-xs text-ink-400">{ROLE_LABELS[role]}</p>
+            <p className="text-xs text-ink-400">{ROLE_LABELS[role] ?? role}</p>
           </div>
         </div>
 
