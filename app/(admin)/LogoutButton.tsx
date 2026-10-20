@@ -1,19 +1,24 @@
 'use client'
 
-import { useRouter } from 'next/navigation'
 import { useState } from 'react'
+import { serverSignOut } from './actions'
 
 export function LogoutButton() {
-  const router = useRouter()
   const [busy, setBusy] = useState(false)
 
   async function signOut() {
+    if (busy) return
     setBusy(true)
     try {
-      await fetch('/api/v1/auth/logout', { method: 'POST', headers: { 'content-type': 'application/json' }, body: '{}' })
-    } finally {
-      router.replace('/login')
-      router.refresh()
+      await fetch('/api/v1/auth/logout', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ allDevices: false }),
+      }).catch(() => null)
+
+      await serverSignOut()
+    } catch {
+      window.location.href = '/login'
     }
   }
 

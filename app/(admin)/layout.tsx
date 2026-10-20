@@ -8,13 +8,14 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   const user = await requireStaffUser()
   const role = user.role as Role
   const roleLabel = ROLE_LABELS[role] ?? role
-  const initials = `${user.firstName?.[0] ?? ''}${user.lastName?.[0] ?? ''}`.toUpperCase() || 'IH'
+  const initials = `${user.firstName?.[0] ?? ''}${user.lastName?.[0] ?? ''}`.toUpperCase() || 'XC'
 
   return (
-    <div className="flex min-h-screen flex-col lg:flex-row bg-[#08080a] text-ink-100 selection:bg-white selection:text-ink-950">
-      {/* Sidebar */}
-      <aside className="border-b border-white/[0.08] bg-[#0c0c0f]/90 backdrop-blur-xl lg:w-64 lg:shrink-0 lg:border-b-0 lg:border-r flex flex-col justify-between">
-        <div>
+    <div className="flex min-h-screen flex-col lg:h-screen lg:max-h-screen lg:flex-row lg:overflow-hidden bg-[#08080a] text-ink-100 selection:bg-white selection:text-ink-950">
+      {/* Sidebar - fixed to screen height, never expands with right-side content */}
+      <aside className="border-b border-white/[0.08] bg-[#0c0c0f]/90 backdrop-blur-xl lg:w-64 lg:shrink-0 lg:border-b-0 lg:border-r flex flex-col lg:h-screen lg:max-h-screen lg:overflow-hidden">
+        {/* Top: Brand Header & User Profile (Fixed) */}
+        <div className="shrink-0">
           {/* Logo Brand Header */}
           <div className="flex items-center justify-between px-5 py-4 border-b border-white/[0.06]">
             <Link href="/dashboard" className="flex items-center gap-3 group">
@@ -51,19 +52,21 @@ export default async function AdminLayout({ children }: { children: React.ReactN
               </div>
             </div>
           </div>
+        </div>
 
-          {/* Navigation Links */}
+        {/* Middle: Navigation Links (Scrollable if screen is short, flex-1) */}
+        <div className="flex-1 min-h-0 overflow-y-auto">
           <AdminNav role={role} />
         </div>
 
-        {/* Footer Area with Sign Out */}
-        <div className="p-3.5 border-t border-white/[0.06]">
+        {/* Bottom: Footer Area with Sign Out (Fixed at bottom of screen) */}
+        <div className="shrink-0 p-3.5 border-t border-white/[0.06] bg-[#0c0c0f]">
           <LogoutButton />
         </div>
       </aside>
 
-      {/* Main Content Viewport with Ambient Lighting */}
-      <main id="main" className="relative min-w-0 flex-1 px-5 py-6 sm:px-8 sm:py-8 overflow-y-auto">
+      {/* Main Content Viewport - independently scrollable */}
+      <main id="main" className="relative min-w-0 flex-1 px-5 py-6 sm:px-8 sm:py-8 lg:h-screen lg:overflow-y-auto">
         {/* Subtle Ambient Mesh Glow in top right */}
         <div className="pointer-events-none absolute -top-40 right-0 h-96 w-96 rounded-full bg-white/[0.02] blur-3xl" />
         <div className="pointer-events-none absolute top-40 left-1/3 h-64 w-64 rounded-full bg-sky-500/[0.015] blur-3xl" />

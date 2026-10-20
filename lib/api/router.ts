@@ -180,6 +180,7 @@ function isEnvelope(value: unknown): value is { data: unknown } {
 
 const COOKIE_SESSION_ROUTES = new Set(['auth/login', 'auth/register'])
 const SESSION_COOKIE_ROUTES = new Set(['auth/refresh'])
+const CLEAR_COOKIE_ROUTES = new Set(['auth/logout'])
 
 /** Entry point used by the catch-all route handler under /api/v1. */
 export async function handleApiRequest(request: Request, segments: string[]): Promise<Response> {
@@ -231,6 +232,8 @@ export async function handleApiRequest(request: Request, segments: string[]): Pr
       const response = result
       if (COOKIE_SESSION_ROUTES.has(routeDef.path) || SESSION_COOKIE_ROUTES.has(routeDef.path)) {
         await attachCookies(response, result)
+      } else if (CLEAR_COOKIE_ROUTES.has(routeDef.path)) {
+        clearAuthCookies(response)
       }
       return withCors(response)
     }
@@ -238,11 +241,42 @@ export async function handleApiRequest(request: Request, segments: string[]): Pr
     const response = NextResponse.json(isEnvelope(result) ? result : { data: result })
     if (COOKIE_SESSION_ROUTES.has(routeDef.path) || SESSION_COOKIE_ROUTES.has(routeDef.path)) {
       await attachCookies(response, result)
+    } else if (CLEAR_COOKIE_ROUTES.has(routeDef.path)) {
+      clearAuthCookies(response)
     }
     return withCors(response)
   } catch (error) {
     return withCors(failResponse(error))
   }
+}
+
+function clearAuthCookies(response: Response): void {
+  const secure = process.env.NODE_ENV === 'production' || Boolean(process.env.VERCEL)
+  const nextResponse = response as NextResponse
+  nextResponse.cookies?.set(ACCESS_COOKIE, '', {
+    httpOnly: true,
+    sameSite: 'lax',
+    secure,
+    path: '/',
+    maxAge: 0,
+    expires: new Date(0),
+  })
+  nextResponse.cookies?.set(REFRESH_COOKIE, '', {
+    httpOnly: true,
+    sameSite: 'lax',
+    secure,
+    path: '/api/v1/auth',
+    maxAge: 0,
+    expires: new Date(0),
+  })
+  nextResponse.cookies?.set(REFRESH_COOKIE, '', {
+    httpOnly: true,
+    sameSite: 'lax',
+    secure,
+    path: '/',
+    maxAge: 0,
+    expires: new Date(0),
+  })
 }
 
 async function attachCookies(response: Response, payload: unknown): Promise<void> {
