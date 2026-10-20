@@ -265,18 +265,15 @@ function clearAuthCookies(response: Response): void {
     httpOnly: true,
     sameSite: 'lax',
     secure,
-    path: '/api/v1/auth',
-    maxAge: 0,
-    expires: new Date(0),
-  })
-  nextResponse.cookies?.set(REFRESH_COOKIE, '', {
-    httpOnly: true,
-    sameSite: 'lax',
-    secure,
     path: '/',
     maxAge: 0,
     expires: new Date(0),
   })
+  // Next.js response.cookies Map is keyed by name; append header directly for secondary path deletion
+  nextResponse.headers.append(
+    'Set-Cookie',
+    `${REFRESH_COOKIE}=; Path=/api/v1/auth; Max-Age=0; Expires=Thu, 01 Jan 1970 00:00:00 GMT; HttpOnly; SameSite=Lax${secure ? '; Secure' : ''}`,
+  )
 }
 
 async function attachCookies(response: Response, payload: unknown): Promise<void> {

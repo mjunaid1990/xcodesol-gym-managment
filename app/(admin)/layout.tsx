@@ -1,72 +1,22 @@
-import Link from 'next/link'
 import { requireStaffUser } from '@/lib/auth/current-user'
-import { ROLE_LABELS, type Role } from '@/lib/constants'
-import { AdminNav } from './AdminNav'
-import { LogoutButton } from './LogoutButton'
+import { Sidebar } from './Sidebar'
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const user = await requireStaffUser()
-  const role = user.role as Role
-  const roleLabel = ROLE_LABELS[role] ?? role
-  const initials = `${user.firstName?.[0] ?? ''}${user.lastName?.[0] ?? ''}`.toUpperCase() || 'XC'
 
   return (
-    <div className="flex min-h-screen flex-col lg:h-screen lg:max-h-screen lg:flex-row lg:overflow-hidden bg-[#08080a] text-ink-100 selection:bg-white selection:text-ink-950">
-      {/* Sidebar - fixed to screen height, never expands with right-side content */}
-      <aside className="border-b border-white/[0.08] bg-[#0c0c0f]/90 backdrop-blur-xl lg:w-64 lg:shrink-0 lg:border-b-0 lg:border-r flex flex-col lg:h-screen lg:max-h-screen lg:overflow-hidden">
-        {/* Top: Brand Header & User Profile (Fixed) */}
-        <div className="shrink-0">
-          {/* Logo Brand Header */}
-          <div className="flex items-center justify-between px-5 py-4 border-b border-white/[0.06]">
-            <Link href="/dashboard" className="flex items-center gap-3 group">
-              <div className="relative flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-white via-zinc-200 to-zinc-400 text-ink-950 font-black text-xs shadow-[0_0_15px_rgba(255,255,255,0.2)] transition-transform group-hover:scale-105">
-                XC
-                <span className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-emerald-500 ring-2 ring-[#0c0c0f]" />
-              </div>
-              <div className="flex flex-col">
-                <span className="text-sm font-semibold tracking-tight text-white group-hover:text-zinc-200 transition-colors">
-                  Xcodesol Gym
-                </span>
-                <span className="text-[10px] font-medium tracking-wider text-ink-400 uppercase">
-                  Management Pro
-                </span>
-              </div>
-            </Link>
-          </div>
+    <div className="flex flex-col md:flex-row h-screen h-dvh w-full overflow-hidden bg-[#08080a] text-ink-100 selection:bg-white selection:text-ink-950">
+      {/* Sidebar - fixed left panel, strictly locked to viewport height */}
+      <Sidebar
+        user={{
+          firstName: user.firstName,
+          lastName: user.lastName,
+          role: user.role,
+        }}
+      />
 
-          {/* User Profile Card */}
-          <div className="mx-3.5 my-4 p-3 rounded-2xl bg-white/[0.03] border border-white/[0.06] flex items-center gap-3">
-            <div className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-tr from-zinc-800 to-zinc-700 border border-white/10 text-white font-semibold text-xs shadow-inner">
-              {initials}
-              <span className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full bg-emerald-500 ring-2 ring-[#18181c]" />
-            </div>
-            <div className="min-w-0 flex-1">
-              <p className="truncate text-xs font-semibold text-white">
-                {user.firstName} {user.lastName}
-              </p>
-              <div className="flex items-center gap-1.5 mt-0.5">
-                <span className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-400" />
-                <span className="truncate text-[11px] font-medium text-ink-300">
-                  {roleLabel}
-                </span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Middle: Navigation Links (Scrollable if screen is short, flex-1) */}
-        <div className="flex-1 min-h-0 overflow-y-auto">
-          <AdminNav role={role} />
-        </div>
-
-        {/* Bottom: Footer Area with Sign Out (Fixed at bottom of screen) */}
-        <div className="shrink-0 p-3.5 border-t border-white/[0.06] bg-[#0c0c0f]">
-          <LogoutButton />
-        </div>
-      </aside>
-
-      {/* Main Content Viewport - independently scrollable */}
-      <main id="main" className="relative min-w-0 flex-1 px-5 py-6 sm:px-8 sm:py-8 lg:h-screen lg:overflow-y-auto">
+      {/* Main Content Viewport - THE ONLY PART THAT SCROLLS */}
+      <main id="main" className="relative flex-1 h-full min-h-0 min-w-0 overflow-y-auto overflow-x-hidden px-5 py-6 sm:px-8 sm:py-8">
         {/* Subtle Ambient Mesh Glow in top right */}
         <div className="pointer-events-none absolute -top-40 right-0 h-96 w-96 rounded-full bg-white/[0.02] blur-3xl" />
         <div className="pointer-events-none absolute top-40 left-1/3 h-64 w-64 rounded-full bg-sky-500/[0.015] blur-3xl" />

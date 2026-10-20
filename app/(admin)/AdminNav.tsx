@@ -152,7 +152,7 @@ export function AdminNav({ role }: { role: Role }) {
             <p className="px-3 text-[10px] font-semibold tracking-wider uppercase text-ink-400/80">
               {group}
             </p>
-            <ul className="mt-1.5 flex flex-wrap gap-1 lg:flex-col">
+            <ul className="mt-1.5 flex flex-col gap-1">
               {items.map((item) => {
                 const isActive = pathname === item.href || (item.href !== '/dashboard' && pathname?.startsWith(item.href))
                 return (

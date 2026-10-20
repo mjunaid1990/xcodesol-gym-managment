@@ -10,15 +10,25 @@ export function LogoutButton() {
     if (busy) return
     setBusy(true)
     try {
+      // 1. Invalidate session in backend DB & cookies via API
       await fetch('/api/v1/auth/logout', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ allDevices: false }),
       }).catch(() => null)
 
+      // 2. Clear client-accessible cookies as a safety net
+      if (typeof document !== 'undefined') {
+        document.cookie = 'ih_access=; path=/; max-age=0; expires=Thu, 01 Jan 1970 00:00:00 GMT'
+        document.cookie = 'ih_refresh=; path=/; max-age=0; expires=Thu, 01 Jan 1970 00:00:00 GMT'
+        document.cookie = 'ih_refresh=; path=/api/v1/auth; max-age=0; expires=Thu, 01 Jan 1970 00:00:00 GMT'
+      }
+
+      // 3. Clear server cookies via server action
       await serverSignOut()
     } catch {
-      window.location.href = '/login'
+      // Hard redirect to login page with signedOut flag to prevent bouncing back
+      window.location.href = '/login?signedOut=1'
     }
   }
 
