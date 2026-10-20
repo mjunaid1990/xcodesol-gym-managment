@@ -1,7 +1,5 @@
 import { redirect } from 'next/navigation'
-import { cookies } from 'next/headers'
 import { getCurrentUser } from '@/lib/auth/current-user'
-import { ACCESS_COOKIE, REFRESH_COOKIE } from '@/lib/auth/tokens'
 import { LoginForm } from './LoginForm'
 
 export const metadata = { title: 'Sign In — Xcodesol Console' }
@@ -15,16 +13,8 @@ export default async function LoginPage({
   const params = await searchParams
   const isExplicitSignOut = params?.logout === 'true' || params?.signedOut === '1'
 
-  if (isExplicitSignOut) {
-    // Explicit sign out requested: force expire any remaining session cookies
-    const store = await cookies()
-    const isProd = process.env.NODE_ENV === 'production' || Boolean(process.env.VERCEL)
-    store.set(ACCESS_COOKIE, '', { path: '/', maxAge: 0, expires: new Date(0), secure: isProd, httpOnly: true, sameSite: 'lax' })
-    store.set(REFRESH_COOKIE, '', { path: '/', maxAge: 0, expires: new Date(0), secure: isProd, httpOnly: true, sameSite: 'lax' })
-    store.set(REFRESH_COOKIE, '', { path: '/api/v1/auth', maxAge: 0, expires: new Date(0), secure: isProd, httpOnly: true, sameSite: 'lax' })
-    store.delete(ACCESS_COOKIE)
-    store.delete(REFRESH_COOKIE)
-  } else {
+  // Only auto-redirect to dashboard if this is NOT an explicit logout
+  if (!isExplicitSignOut) {
     const user = await getCurrentUser()
     if (user) redirect(user.role === 'MEMBER' ? '/no-access' : '/dashboard')
   }

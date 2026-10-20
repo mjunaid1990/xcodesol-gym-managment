@@ -1,13 +1,27 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Button, Field, inputClass } from '@/components/ui'
 
 export function LoginForm() {
   const router = useRouter()
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
+  const [signedOutNotice, setSignedOutNotice] = useState(false)
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const urlParams = new URLSearchParams(window.location.search)
+      if (urlParams.get('signedOut') === '1' || urlParams.get('logout') === 'true') {
+        setSignedOutNotice(true)
+        // Ensure client-accessible cookies are expunged
+        document.cookie = 'ih_access=; path=/; max-age=0; expires=Thu, 01 Jan 1970 00:00:00 GMT'
+        document.cookie = 'ih_refresh=; path=/; max-age=0; expires=Thu, 01 Jan 1970 00:00:00 GMT'
+        document.cookie = 'ih_refresh=; path=/api/v1/auth; max-age=0; expires=Thu, 01 Jan 1970 00:00:00 GMT'
+      }
+    }
+  }, [])
 
   async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -42,6 +56,15 @@ export function LoginForm() {
 
   return (
     <form onSubmit={submit} className="flex flex-col gap-4">
+      {signedOutNotice ? (
+        <div className="flex items-center gap-2.5 rounded-xl border border-emerald-500/25 bg-emerald-500/10 px-3.5 py-2.5 text-xs text-emerald-400">
+          <svg className="h-4 w-4 shrink-0 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <span className="font-medium">You have been signed out successfully.</span>
+        </div>
+      ) : null}
+
       <Field label="Email or phone" htmlFor="identifier">
         <input
           id="identifier"
